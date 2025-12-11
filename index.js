@@ -67,7 +67,7 @@ client.on('messageCreate', async (message) => {
     if (MODO_ACTUAL !== 'MUSICA') {
 
         if (command === 'ping') {
-            return message.reply('¡Pong! 🏓 (Desde el servidor de Texto)');
+            return message.reply('¡Pong! 🏓');
         }
 
         if (command === 'hola') {
