@@ -53,55 +53,65 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
-    
-    // 1. SI NO EMPIEZA POR "!", LO IGNORAMOS (Así ahorramos recursos)
     if (!message.content.startsWith('!')) return;
 
-    // 2. PARSEADO (TROCEADO) INTELIGENTE
-    // Quitamos el "!" del principio y separamos por espacios
+    // Leemos en qué MODO está configurado este bot (si no hay nada, hace TODO)
+    const MODO_ACTUAL = process.env.BOT_MODE || 'TODO';
+
     const args = message.content.slice(1).trim().split(/ +/);
-    // Sacamos la primera palabra y la pasamos a minúsculas (el comando)
     const command = args.shift().toLowerCase();
-    // Volvemos a juntar el resto para tener el nombre de la canción
     const query = args.join(" ");
 
-    // --- COMANDO: PLAY (!play o !p) ---
-    if (command === 'play' || command === 'p') {
-        const canalVoz = message.member.voice.channel;
-        if (!canalVoz) return message.reply('❌ ¡Entra primero al chat de voz!');
+    // --- BLOQUE DE COMANDOS DE TEXTO (Ping, Hola, Moderación) ---
+    // Si el bot está en modo "SOLO MUSICA", ignoramos este bloque
+    if (MODO_ACTUAL !== 'MUSICA') {
 
-        if (!query) return message.reply('❌ Dime qué canción busco (ej: !p bad bunny)');
-
-        try {
-            message.reply(`🔍 Buscando **${query}**...`);
-            const { track } = await player.play(canalVoz, query, {
-                nodeOptions: {
-                    metadata: message,
-                    leaveOnEmpty: false, // <--- No te vayas si la cola se vacía
-                    leaveOnEnd: false,   // <--- No te vayas cuando acabe la canción
-                    leaveOnStop: false   // <--- No te vayas si te doy stop (solo borra la cola)
-                }
-            });
-            return message.channel.send(`🎶 ¡Añadido: **${track.title}**!`);
-        } catch (error) {
-            return message.reply('❌ No encontré esa canción.');
+        if (command === 'ping') {
+            return message.reply('¡Pong! 🏓 (Desde el servidor de Texto)');
         }
+
+        if (command === 'hola') {
+            return message.reply('¡Hola! Soy tu bot 24/7.');
+        }
+
+        // Aquí irían tus futuros comandos de !borrar, !ban, etc.
     }
 
-    // --- COMANDO: SKIP (!skip o !s) ---
-    if (command === 'skip' || command === 's') {
-        const queue = player.nodes.get(message.guild);
-        if (!queue || !queue.isPlaying()) return message.reply('❌ No hay música sonando.');
-        
-        queue.node.skip();
-        return message.reply('⏩ ¡Siguiente tema!');
-    }
+    // --- BLOQUE DE COMANDOS DE MÚSICA (Play, Stop, Skip) ---
+    // Si el bot está en modo "SOLO TEXTO", ignoramos este bloque
+    if (MODO_ACTUAL !== 'TEXTO') {
 
-    // --- COMANDO: STOP (!stop, !exit o !e) ---
-    if (command === 'stop' || command === 'exit' || command === 'e') {
-        const queue = player.nodes.get(message.guild);
-        if (queue) queue.delete();
-        return message.reply('🛑 ¡Desconectando! Nos vemos.');
+        if (command === 'play' || command === 'p') {
+            const canalVoz = message.member.voice.channel;
+            if (!canalVoz) return message.reply('❌ ¡Entra primero al chat de voz!');
+            if (!query) return message.reply('❌ Dime qué canción busco.');
+
+            try {
+                // Mensaje simple para no spamear
+                // message.reply(`🔍 Buscando **${query}**...`); 
+                const { track } = await player.play(canalVoz, query, {
+                    nodeOptions: { metadata: message, leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false }
+                });
+                return message.channel.send(`🎶 ¡Añadido: **${track.title}**!`);
+            } catch (error) {
+                return message.reply('❌ Error al poner música (¿Quizás YouTube bloqueó la IP?).');
+            }
+        }
+        // --- COMANDO: SKIP (!skip o !s) ---
+        if (command === 'skip' || command === 's') {
+            const queue = player.nodes.get(message.guild);
+            if (!queue || !queue.isPlaying()) return message.reply('❌ No hay música sonando.');
+
+            queue.node.skip();
+            return message.reply('⏩ ¡Siguiente tema!');
+        }
+
+        // --- COMANDO: STOP (!stop, !exit o !e) ---
+        if (command === 'stop' || command === 'exit' || command === 'e') {
+            const queue = player.nodes.get(message.guild);
+            if (queue) queue.delete();
+            return message.reply('🛑 ¡Desconectando! Nos vemos.');
+        }
     }
 });
 
