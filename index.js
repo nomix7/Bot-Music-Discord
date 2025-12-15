@@ -1,5 +1,4 @@
 require('dotenv').config();
-// 1. AÑADIDO: Importamos ApplicationCommandOptionType para definir los tipos (Texto, Usuario, etc.)
 const { Client, GatewayIntentBits, ApplicationCommandOptionType } = require('discord.js');
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
@@ -33,9 +32,9 @@ async function cargarExtractores() {
 }
 cargarExtractores();
 
-// =================================================================
-// 🆕 PARTE 1: REGISTRAR LOS COMANDOS AL INICIAR
-// =================================================================
+// =======================
+// Registrar los comandos
+// =======================
 client.on('ready', async () => {
     console.log(`🎵 Bot de música listo como ${client.user.tag}!`);
 
@@ -66,16 +65,13 @@ client.on('ready', async () => {
             description: 'Detiene la música y desconecta al bot'
         }
     ];
-
-    // Registramos los comandos GLOBALMENTE (puede tardar 1 hora en actualizarse en Discord)
-    // Si quieres que sea instantáneo para probar, usa: client.application.commands.set(comandos, 'ID_DE_TU_SERVIDOR');
     await client.application.commands.set(comandos);
-    console.log('💻 Comandos Slash (/) registrados globalmente!');
+    console.log('💻 Comandos Slash (/) registrados!');
 });
 
-// =================================================================
-// 🆕 PARTE 2: ESCUCHAR LOS COMANDOS SLASH (INTERACCIONES)
-// =================================================================
+// ===========================
+// Escuchar Slash Commands (/)
+// ===========================
 client.on('interactionCreate', async (interaction) => {
     // Si no es un comando de chat, ignoramos
     if (!interaction.isChatInputCommand()) return;
@@ -127,10 +123,9 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-// =================================================================
-// PARTE 3: SOPORTE LEGACY (Tus comandos antiguos con "!")
-// (Puedes borrar esto si ya no quieres usar !)
-// =================================================================
+// ================
+// Comandos con "!"
+// ================
 client.on('messageCreate', async (message) => {
     if (message.author.bot || !message.content.startsWith('!')) return;
 
@@ -138,7 +133,6 @@ client.on('messageCreate', async (message) => {
     const command = args.shift().toLowerCase();
     const query = args.join(" ");
 
-    // Aquí he dejado tu lógica antigua intacta por si acaso
     if (command === 'play' || command === 'p') {
         const canalVoz = message.member.voice.channel;
         if (!canalVoz) return message.reply('❌ ¡Entra primero al chat de voz!');
@@ -151,7 +145,6 @@ client.on('messageCreate', async (message) => {
         } catch (e) { return message.reply('❌ Error.'); }
     }
     
-    // ... Tus otros comandos !skip y !stop siguen funcionando igual ...
     if (command === 'stop') {
          const queue = player.nodes.get(message.guild);
          if (queue) queue.delete();
