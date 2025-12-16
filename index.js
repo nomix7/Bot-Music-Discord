@@ -301,6 +301,22 @@ client.on('messageCreate', async (message) => {
         return message.channel.send({ embeds: [embed] });
     }
 
+    // --- COMANDO DE DIAGNÓSTICO ---
+    if (command === 'testbienvenida') {
+        try {
+            // Intentamos buscar el canal con la ID que has puesto arriba
+            const channel = await client.channels.fetch(1009204515481854002);
+            
+            if (channel) {
+                channel.send('✅ **DIAGNÓSTICO:** Si lees esto, la ID es correcta y tengo permisos para escribir.');
+                message.reply('Test enviado al canal de bienvenida. ¿Lo ves?');
+            }
+        } catch (error) {
+            message.reply(`❌ **ERROR:** No encuentro el canal. \nCausa: La ID ${1009204515481854002} está mal O no tengo permiso "Ver Canal" en ese chat.`);
+            console.error(error);
+        }
+    }
+
 });
 
 // ==========================================
