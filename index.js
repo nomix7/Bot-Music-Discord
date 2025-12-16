@@ -158,7 +158,8 @@ client.on('interactionCreate', async (interaction) => {
             "Sí, definitivamente. ✅",
             "No lo creo. ❌",
             "Es muy probable. 🌟",
-            "Ni en tus sueños. 🤡"
+            "Ni en tus sueños. 🤡",
+            "Pregunta mañana. 😴"
         ];
 
         // Magia matemática para elegir una al azar
@@ -224,12 +225,14 @@ client.on('interactionCreate', async (interaction) => {
 // Comandos con "!"
 // ================
 client.on('messageCreate', async (message) => {
+    // Ignorar bots y mensajes que no empiecen por "!"
     if (message.author.bot || !message.content.startsWith('!')) return;
 
     const args = message.content.slice(1).trim().split(/ +/);
     const command = args.shift().toLowerCase();
     const query = args.join(" ");
 
+    // --- COMANDO: !PLAY ---
     if (command === 'play' || command === 'p') {
         const canalVoz = message.member.voice.channel;
         if (!canalVoz) return message.reply('❌ ¡Entra primero al chat de voz!');
@@ -239,14 +242,61 @@ client.on('messageCreate', async (message) => {
                 nodeOptions: { metadata: message, leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false }
             });
             return message.channel.send(`🎶 ¡Añadido: **${track.title}**!`);
-        } catch (e) { return message.reply('❌ Error.'); }
+        } catch (e) { return message.reply('❌ Error buscando la canción.'); }
+    }
+    
+    // --- COMANDO: !STOP ---
+    if (command === 'stop' || command === 'e') {
+         const queue = player.nodes.get(message.guild);
+         if (queue) queue.delete();
+         message.reply('🛑 Adiós.');
     }
 
-    if (command === 'stop') {
+    // --- COMANDO: !SKIP ---
+    if (command === 'skip' || command === 's') {
         const queue = player.nodes.get(message.guild);
-        if (queue) queue.delete();
-        message.reply('🛑 Adiós.');
+        if (!queue || !queue.isPlaying()) return message.reply('❌ No hay música sonando.');
+        
+        queue.node.skip();
+        return message.reply('⏩ ¡Siguiente canción!');
     }
+
+    // --- COMANDO: !BOLA8 ---
+    if (command === 'bola8') {
+        if (!query) return message.reply('🔮 Pregúntame algo.');
+
+        const respuestas = [
+            "Sí, claro. ✅", "No lo creo. ❌", "Quizás... 🕵️", 
+            "Definitivamente sí. 🌟", "Pregunta mañana. 😴"
+        ];
+        // Elegir respuesta al azar
+        const azar = respuestas[Math.floor(Math.random() * respuestas.length)];
+
+        // Crear la tarjeta bonita (Embed)
+        const embed = new EmbedBuilder()
+            .setTitle('🎱 La Bola Mágica')
+            .setColor('Purple')
+            .addFields(
+                { name: 'Pregunta', value: query },
+                { name: 'Respuesta', value: azar }
+            );
+
+        return message.channel.send({ embeds: [embed] });
+    }
+
+    // --- COMANDO: !AVATAR ---
+    if (command === 'avatar') {
+        // Coge el usuario mencionado O el autor del mensaje
+        const usuario = message.mentions.users.first() || message.author;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`Avatar de ${usuario.username}`)
+            .setImage(usuario.displayAvatarURL({ size: 1024, dynamic: true }))
+            .setColor('Blue');
+
+        return message.channel.send({ embeds: [embed] });
+    }
+
 });
 
 client.login(process.env.DISCORD_TOKEN);
