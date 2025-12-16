@@ -131,9 +131,9 @@ client.on('interactionCreate', async (interaction) => {
     // Borramos
     try {
         await interaction.channel.bulkDelete(cantidad);
-        return interaction.reply({ content: `🧹 He barrido **${cantidad}** mensajes.`, ephemeral: true });
+        return interaction.reply({ content: `**${cantidad}** mensajes eliminados.`, ephemeral: true });
     } catch (error) {
-        return interaction.reply({ content: '❌ Error: No puedo borrar mensajes antiguos (más de 14 días) o no tengo permisos.', ephemeral: true });
+        return interaction.reply({ content: '❌ No puedo borrar mensajes antiguos (más de 14 días) o no tengo permisos.', ephemeral: true });
     }
 }
     // --- COMANDO /AVATAR ---
