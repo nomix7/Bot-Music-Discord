@@ -1,4 +1,5 @@
 require('dotenv').config();
+// 1. AÑADIDO: Importamos 'GatewayIntentBits.GuildMembers' en la lista de intents
 const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, PermissionsBitField } = require('discord.js');
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
@@ -16,7 +17,8 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMembers // <--- ¡NUEVO! Necesario para ver quién entra/sale
     ]
 });
 
@@ -215,8 +217,6 @@ client.on('interactionCreate', async (interaction) => {
 
     // --- COMANDO /STOP ---
     if (commandName === 'stop') {
-        const canalVoz = interaction.member.voice.channel;
-        if (!canalVoz) return interaction.reply({ content: '❌ ¡Entra primero a un canal de voz!', ephemeral: true });
         const queue = player.nodes.get(interaction.guild);
         if (queue) queue.delete();
         return interaction.reply('🛑 ¡Música detenida y desconectado!');
@@ -299,6 +299,31 @@ client.on('messageCreate', async (message) => {
         return message.channel.send({ embeds: [embed] });
     }
 
+});
+
+// ==========================================
+// 🆕 SISTEMA DE BIENVENIDA Y DESPEDIDA
+// ==========================================
+
+// Evento: Alguien entra
+client.on('guildMemberAdd', async (member) => {
+    // Busca un canal llamado 'general' o 'bienvenida'. Si el tuyo se llama distinto, cámbialo aquí.
+    const channel = member.guild.channels.cache.find(ch => ch.name === '𝓑𝓲𝓮𝓷𝓿𝓮𝓷𝓲𝓭𝓪-🏡');
+    
+    if (!channel) return; // Si no encuentra el canal, no hace nada
+
+    // Enviar mensaje con mención al usuario
+    channel.send(`Bienvenido <@${member.id}>, suerte con salir cuerdo de aquí. 😃`);
+});
+
+// Evento: Alguien se va
+client.on('guildMemberRemove', async (member) => {
+    const channel = member.guild.channels.cache.find(ch => ch.name === '𝓓𝓮𝓼𝓹𝓮𝓭𝓲𝓭𝓪-👋');
+    
+    if (!channel) return;
+
+    // Enviar mensaje (aquí no se puede mencionar porque ya no está, usamos su nombre de usuario)
+    channel.send(`@${member.user.username} No pudo aguantar más 😃.`);
 });
 
 client.login(process.env.DISCORD_TOKEN);
