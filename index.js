@@ -161,7 +161,8 @@ client.on('interactionCreate', async (interaction) => {
             "No lo creo. ❌",
             "Es muy probable. 🌟",
             "Ni en tus sueños. 🤡",
-            "Pregunta mañana. 😴"
+            "Pregunta mañana. 😴",
+            "Preguntale a un adulto responsable. 🙈"
         ];
 
         // Magia matemática para elegir una al azar
@@ -269,7 +270,8 @@ client.on('messageCreate', async (message) => {
 
         const respuestas = [
             "Sí, claro. ✅", "No lo creo. ❌", "Quizás... 🕵️", 
-            "Definitivamente sí. 🌟", "Pregunta mañana. 😴"
+            "Definitivamente sí. 🌟", "Pregunta mañana. 😴", 
+            "Preguntale a un adulto responsable. 🙈"
         ];
         // Elegir respuesta al azar
         const azar = respuestas[Math.floor(Math.random() * respuestas.length)];
@@ -302,28 +304,33 @@ client.on('messageCreate', async (message) => {
 });
 
 // ==========================================
-// 🆕 SISTEMA DE BIENVENIDA Y DESPEDIDA (POR ID)
+// 4. SISTEMA DE BIENVENIDA Y DESPEDIDA
 // ==========================================
 
+//  AQUI PEGA LA ID DE TU CANAL 
 const ID_CANAL_BIENVENIDA = '1009204515481854002'; 
-const ID_CANAL_DESPEDIDA = '1009752137363894343';
-// Evento: Alguien entra
-client.on('guildMemberAdd', async (member) => {
-    // Buscamos el canal directamente por su ID única
-    const channel = member.guild.channels.cache.get(1009204515481854002);
-    
-    if (!channel) return; // Si la ID está mal, no hace nada
+const ID_CANAL_DESPEDIDA = '1009752137363894343'; 
 
-    channel.send(`Bienvenido <@${member.id}>, suerte con salir cuerdo de aquí. 😃`);
+client.on('guildMemberAdd', async (member) => {
+    try {
+        const channel = await member.guild.channels.fetch(1009204515481854002);
+        if (channel) {
+            channel.send(`Bienvenido <@${member.id}>, suerte con salir cuerdo de aquí. 😃`);
+        }
+    } catch (e) {
+        console.error('❌ Error Bienvenida: ID incorrecta o falta permiso "Ver Canal".');
+    }
 });
 
-// Evento: Alguien se va
 client.on('guildMemberRemove', async (member) => {
-    const channel = member.guild.channels.cache.get(1009752137363894343);
-    
-    if (!channel) return;
-
-    channel.send(`@${member.user.username} No pudo aguantar más 👀.`);
+    try {
+        const channel = await member.guild.channels.fetch(1009752137363894343);
+        if (channel) {
+            channel.send(`@${member.user.username} No pudo aguantar más 😃.`);
+        }
+    } catch (e) {
+        console.error('❌ Error Despedida.');
+    }
 });
 
 client.login(process.env.DISCORD_TOKEN);
