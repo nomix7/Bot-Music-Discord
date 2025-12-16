@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, ApplicationCommandOptionType } = require('discord.js');
+const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, PermissionsBitField } = require('discord.js');
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
 const express = require('express');
@@ -41,6 +41,42 @@ client.on('ready', async () => {
     // Definimos la lista de comandos Slash
     const comandos = [
         {
+            name: 'borrar',
+            description: 'Borra una cantidad de mensajes (Admins)',
+            options: [
+                {
+                    name: 'cantidad',
+                    description: 'Número de mensajes a borrar (max 100)',
+                    type: ApplicationCommandOptionType.Integer, // Tipo Número entero
+                    required: true
+                }
+            ]
+        },
+        {
+            name: 'avatar',
+            description: 'Muestra la foto de perfil de un usuario',
+            options: [
+                {
+                    name: 'usuario',
+                    description: 'De quién quieres ver la foto',
+                    type: ApplicationCommandOptionType.User, // Tipo Usuario
+                    required: false // Si no pone nada, muestra la suya
+                }
+            ]
+        },
+        {
+            name: 'bola8',
+            description: 'Responde a tus preguntas existenciales',
+            options: [
+                {
+                    name: 'pregunta',
+                    description: '¿Qué quieres saber?',
+                    type: ApplicationCommandOptionType.String,
+                    required: true
+                }
+            ]
+        },
+        {
             name: 'ping',
             description: 'Comprueba la latencia del bot'
         },
@@ -78,6 +114,67 @@ client.on('interactionCreate', async (interaction) => {
 
     const { commandName } = interaction;
 
+    // --- COMANDO /BORRAR ---
+    if (commandName === 'borrar') {
+    // 1. SEGURIDAD: Comprobamos si el usuario tiene permisos para manejar mensajes
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+        return interaction.reply({ content: '⛔ ¡No tienes permisos para hacer esto!', ephemeral: true });
+    }
+
+    const cantidad = interaction.options.getInteger('cantidad');
+
+    // Discord no deja borrar más de 100 de golpe ni mensajes de hace más de 14 días
+    if (cantidad > 100 || cantidad < 1) {
+        return interaction.reply({ content: 'Solo puedo borrar entre 1 y 100 mensajes.', ephemeral: true });
+    }
+
+    // Borramos
+    try {
+        await interaction.channel.bulkDelete(cantidad);
+        return interaction.reply({ content: `🧹 He barrido **${cantidad}** mensajes.`, ephemeral: true });
+    } catch (error) {
+        return interaction.reply({ content: '❌ Error: No puedo borrar mensajes antiguos (más de 14 días) o no tengo permisos.', ephemeral: true });
+    }
+}
+    // --- COMANDO /AVATAR ---
+    if (commandName === 'avatar') {
+        // Si ha mencionado a alguien, usamos ese. Si no, usamos al que escribió el comando.
+        const usuario = interaction.options.getUser('usuario') || interaction.user;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`Avatar de ${usuario.username}`)
+            .setImage(usuario.displayAvatarURL({ size: 1024, dynamic: true })) // dynamic: true permite gifs
+            .setColor('Random')
+            .setFooter({ text: 'Solicitado por ' + interaction.user.username });
+
+        return interaction.reply({ embeds: [embed] });
+    }
+    // --- COMANDO /BOLA8 ---
+    if (commandName === 'bola8') {
+        const pregunta = interaction.options.getString('pregunta');
+
+        // Array de respuestas posibles
+        const respuestas = [
+            "Sí, definitivamente. ✅",
+            "No lo creo. ❌",
+            "Es muy probable. 🌟",
+            "Ni en tus sueños. 🤡"
+        ];
+
+        // Magia matemática para elegir una al azar
+        const respuestaRandom = respuestas[Math.floor(Math.random() * respuestas.length)];
+
+        // Creamos un Embed (tarjeta bonita)
+        const embed = new EmbedBuilder()
+            .setTitle('🎱 La Bola Mágica dice...')
+            .setColor('Purple') // Puedes poner 'Red', 'Blue', etc.
+            .addFields(
+                { name: 'Tu pregunta', value: pregunta },
+                { name: 'Mi respuesta', value: respuestaRandom }
+            );
+
+        return interaction.reply({ embeds: [embed] });
+    }
     // --- COMANDO /PING ---
     if (commandName === 'ping') {
         return interaction.reply('¡Pong! 🏓');
@@ -97,7 +194,7 @@ client.on('interactionCreate', async (interaction) => {
             const { track } = await player.play(canalVoz, query, {
                 nodeOptions: { metadata: interaction, leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false }
             });
-            
+
             // Usamos editReply porque ya usamos deferReply antes
             return interaction.editReply(`🎶 ¡Añadido a la cola: **${track.title}**!`);
         } catch (error) {
@@ -144,11 +241,11 @@ client.on('messageCreate', async (message) => {
             return message.channel.send(`🎶 ¡Añadido: **${track.title}**!`);
         } catch (e) { return message.reply('❌ Error.'); }
     }
-    
+
     if (command === 'stop') {
-         const queue = player.nodes.get(message.guild);
-         if (queue) queue.delete();
-         message.reply('🛑 Adiós.');
+        const queue = player.nodes.get(message.guild);
+        if (queue) queue.delete();
+        message.reply('🛑 Adiós.');
     }
 });
 
