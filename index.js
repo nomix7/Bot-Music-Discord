@@ -308,7 +308,7 @@ client.on('messageCreate', async (message) => {
             const channel = await client.channels.fetch(ID_CANAL_BIENVENIDA);
             
             if (channel) {
-                channel.send('✅ **DIAGNÓSTICO:** Si lees esto, la ID es correcta y tengo permisos para escribir.');
+                channel.send('✅ **DIAGNÓSTICO:** La ID es correcta y tengo permisos para escribir.');
                 message.reply('Test enviado al canal de bienvenida. ¿Lo ves?');
             }
         } catch (error) {
@@ -340,7 +340,7 @@ client.on('guildMemberAdd', async (member) => {
 
 client.on('guildMemberRemove', async (member) => {
     try {
-        const channel = await member.guild.channels.fetch(1009752137363894343);
+        const channel = await member.guild.channels.fetch(ID_CANAL_DESPEDIDA);
         if (channel) {
             channel.send(`@${member.user.username} No pudo aguantar más 😃.`);
         }
