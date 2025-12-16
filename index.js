@@ -302,28 +302,28 @@ client.on('messageCreate', async (message) => {
 });
 
 // ==========================================
-// 🆕 SISTEMA DE BIENVENIDA Y DESPEDIDA
+// 🆕 SISTEMA DE BIENVENIDA Y DESPEDIDA (POR ID)
 // ==========================================
 
+const ID_CANAL_BIENVENIDA = '1009204515481854002'; 
+const ID_CANAL_DESPEDIDA = '1009752137363894343';
 // Evento: Alguien entra
 client.on('guildMemberAdd', async (member) => {
-    // Busca un canal llamado 'general' o 'bienvenida'. Si el tuyo se llama distinto, cámbialo aquí.
-    const channel = member.guild.channels.cache.find(ch => ch.name === '𝓑𝓲𝓮𝓷𝓿𝓮𝓷𝓲𝓭𝓪-🏡');
+    // Buscamos el canal directamente por su ID única
+    const channel = member.guild.channels.cache.get(1009204515481854002);
     
-    if (!channel) return; // Si no encuentra el canal, no hace nada
+    if (!channel) return; // Si la ID está mal, no hace nada
 
-    // Enviar mensaje con mención al usuario
     channel.send(`Bienvenido <@${member.id}>, suerte con salir cuerdo de aquí. 😃`);
 });
 
 // Evento: Alguien se va
 client.on('guildMemberRemove', async (member) => {
-    const channel = member.guild.channels.cache.find(ch => ch.name === '𝓓𝓮𝓼𝓹𝓮𝓭𝓲𝓭𝓪-👋');
+    const channel = member.guild.channels.cache.get(1009752137363894343);
     
     if (!channel) return;
 
-    // Enviar mensaje (aquí no se puede mencionar porque ya no está, usamos su nombre de usuario)
-    channel.send(`@${member.user.username} No pudo aguantar más 😃.`);
+    channel.send(`@${member.user.username} No pudo aguantar más 👀.`);
 });
 
 client.login(process.env.DISCORD_TOKEN);
