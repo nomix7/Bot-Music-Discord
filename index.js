@@ -305,14 +305,14 @@ client.on('messageCreate', async (message) => {
     if (command === 'testbienvenida') {
         try {
             // Intentamos buscar el canal con la ID que has puesto arriba
-            const channel = await client.channels.fetch(1009204515481854002);
+            const channel = await client.channels.fetch(ID_CANAL_BIENVENIDA);
             
             if (channel) {
                 channel.send('✅ **DIAGNÓSTICO:** Si lees esto, la ID es correcta y tengo permisos para escribir.');
                 message.reply('Test enviado al canal de bienvenida. ¿Lo ves?');
             }
         } catch (error) {
-            message.reply(`❌ **ERROR:** No encuentro el canal. \nCausa: La ID ${1009204515481854002} está mal O no tengo permiso "Ver Canal" en ese chat.`);
+            message.reply(`❌ **ERROR:** No encuentro el canal. \nCausa: La ID ${ID_CANAL_BIENVENIDA} está mal O no tengo permiso "Ver Canal" en ese chat.`);
             console.error(error);
         }
     }
@@ -329,7 +329,7 @@ const ID_CANAL_DESPEDIDA = '1009752137363894343';
 
 client.on('guildMemberAdd', async (member) => {
     try {
-        const channel = await member.guild.channels.fetch(1009204515481854002);
+        const channel = await member.guild.channels.fetch(ID_CANAL_BIENVENIDA);
         if (channel) {
             channel.send(`Bienvenido <@${member.id}>, suerte con salir cuerdo de aquí. 😃`);
         }
