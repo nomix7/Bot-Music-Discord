@@ -215,6 +215,8 @@ client.on('interactionCreate', async (interaction) => {
 
     // --- COMANDO /STOP ---
     if (commandName === 'stop') {
+        const canalVoz = interaction.member.voice.channel;
+        if (!canalVoz) return interaction.reply({ content: '❌ ¡Entra primero a un canal de voz!', ephemeral: true });
         const queue = player.nodes.get(interaction.guild);
         if (queue) queue.delete();
         return interaction.reply('🛑 ¡Música detenida y desconectado!');
