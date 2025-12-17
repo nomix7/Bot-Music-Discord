@@ -1,31 +1,22 @@
 // ==========================================
-// 🎨 ESTILOS NEKO: OREJAS REDONDAS Y SUAVES 😺
+// 🎨 ESTILOS NEKO: VERSIÓN FINAL - OREJAS CENTRADAS
 // ==========================================
-const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { createCanvas, loadImage, registerFont } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
 
+// Paleta de colores exacta
 const COLORES = {
-    fondoCanvas: '#2b2d31',      // Gris Discord estándar
-    
-    // --- COLORES OREJAS ---
-    orejaBorde: '#4e5058',       // Gris medio (trazo)
-    orejaFondo: '#2b2d31',       // Mismo que fondo (huecas)
-    orejaInterior: '#1e1f22',    // Gris oscuro (profundidad interior)
-
-    // --- COLORES MARCO (Capa intermedia) ---
-    marcoColor: '#383a40',       // Gris carcasa
-    
-    // --- COLORES PANTALLA (Capa superior) ---
-    pantallaFondo: '#111214',    // Casi negro (pantalla)
-    pantallaSombra: '#000000',   // Sombra de profundidad
-
-    // --- TEXTO Y DETALLES ---
-    textoBlanco: '#ffffff',
-    textoGris: '#dbdee1',
-    bordeAvatar: '#ffffff'
+    fondoCanvas: '#2f3136',
+    marcoExterior: '#202225',
+    orejas: '#202225',
+    marcoInterior: '#18191c',
+    sombraGlow: '#000000',
+    textoPrincipal: '#ffffff',
+    textoSecundario: '#b9bbbe',
+    bordeAvatar: '#202225'
 };
 
-// Función para rectángulos redondeados (La misma de antes)
+// Función para rectángulos redondeados
 function roundRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -40,161 +31,127 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
-// --- NUEVA FUNCIÓN DE OREJA REDONDEADA ---
+// Función para dibujar las orejas
 function dibujarOreja(ctx, x, y, esDerecha) {
-    const dir = esDerecha ? 1 : -1; // 1 para derecha, -1 para izquierda
-    
-    // Configuramos el trazo para que las puntas y uniones sean redondas
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    ctx.save();
+    ctx.translate(x, y);
+    if (esDerecha) {
+        ctx.scale(-1, 1); // Espejo para la oreja derecha
+    }
 
-    // === 1. OREJA EXTERIOR ===
     ctx.beginPath();
-    ctx.moveTo(x, y); // Empezamos en la base pegada al marco
+    ctx.moveTo(0, 0);
+    // Curva exterior
+    ctx.bezierCurveTo(5, -40, 25, -70, 60, -80);
+    // Curva interior (bajada)
+    ctx.bezierCurveTo(70, -50, 75, -20, 80, 0);
+    ctx.closePath();
 
-    // Usamos bezierCurveTo para tener control total de la curvatura
-    // (cp1x, cp1y, cp2x, cp2y, xFinal, yFinal)
-    
-    // Trazado 1: Subida curva hacia afuera
-    ctx.bezierCurveTo(
-        x + (10 * dir), y - 50,  // Control 1: Sube un poco recto
-        x + (30 * dir), y - 90,  // Control 2: Empieza a curvarse afuera
-        x + (60 * dir), y - 100  // PUNTA: Llegamos a la cima (redondeada)
-    );
-
-    // Trazado 2: Bajada curva hacia la base exterior
-    ctx.bezierCurveTo(
-        x + (80 * dir), y - 105, // Control 1: Mantiene la redondez arriba
-        x + (90 * dir), y - 50,  // Control 2: Baja abriéndose
-        x + (100 * dir), y + 20  // Final: Base exterior (un poco más abajo)
-    );
-
-    // Cerramos la base
-    ctx.lineTo(x, y);
-
-    // Dibujamos
-    ctx.fillStyle = COLORES.orejaFondo;
+    ctx.fillStyle = COLORES.orejas;
     ctx.fill();
-    ctx.lineWidth = 6; // Grosor del trazo
-    ctx.strokeStyle = COLORES.orejaBorde;
+
+    // Línea de detalle interna
+    ctx.beginPath();
+    ctx.moveTo(20, -10);
+    ctx.bezierCurveTo(25, -30, 35, -50, 55, -55);
+    ctx.strokeStyle = '#2f3136'; // Color ligeramente más claro para el detalle
+    ctx.lineWidth = 3;
     ctx.stroke();
 
-    // === 2. OREJA INTERIOR (La parte oscura) ===
-    ctx.beginPath();
-    // Empezamos un poco desplazados adentro
-    const innerX = x + (25 * dir);
-    const innerY = y - 10;
-    
-    ctx.moveTo(innerX, innerY);
-    
-    // Curva interior más pequeña
-    ctx.bezierCurveTo(
-        innerX + (5 * dir), innerY - 40,
-        innerX + (20 * dir), innerY - 60,
-        innerX + (40 * dir), innerY - 70 // Punta interior
-    );
-    
-    ctx.bezierCurveTo(
-        innerX + (55 * dir), innerY - 60,
-        innerX + (55 * dir), innerY - 30,
-        innerX + (60 * dir), innerY + 10
-    );
-
-    ctx.fillStyle = COLORES.orejaInterior;
-    ctx.fill();
+    ctx.restore();
 }
 
 async function crearTarjetaBienvenida(member) {
+    // Dimensiones del canvas
     const canvasWidth = 800;
-    const canvasHeight = 350;
+    const canvasHeight = 380; // Un poco más alto para las orejas
     const canvas = createCanvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
 
-    // --- 1. FONDO ---
+    // 1. Fondo transparente/oscuro
     ctx.fillStyle = COLORES.fondoCanvas;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // --- 2. DIBUJAR OREJAS ---
-    // Ajustamos la posición X e Y para que encajen perfectas
-    // Y=100 para que asomen bien por encima del marco
-    dibujarOreja(ctx, 120, 100, false);         // Izquierda
-    dibujarOreja(ctx, canvasWidth - 120, 100, true); // Derecha
+    // 2. Dibujar Orejas (Detrás del marco exterior)
+    // AJUSTE AQUÍ: Movemos las X hacia adentro (50 y -50 en vez de 20 y -20)
+    // Y bajamos un poco la Y a 35 para que asienten mejor
+    dibujarOreja(ctx, 50, 35, false); // Izquierda
+    dibujarOreja(ctx, canvasWidth - 50, 35, true); // Derecha
 
-
-    // --- 3. MARCO (Capa Intermedia) ---
-    const marcoMargin = 40;
-    const marcoTop = 50; 
-    const marcoW = canvasWidth - (marcoMargin * 2);
-    const marcoH = canvasHeight - marcoTop - 20; 
+    // 3. Marco Exterior
+    const marcoExtX = 20;
+    const marcoExtY = 35;
+    const marcoExtW = canvasWidth - 40;
+    const marcoExtH = canvasHeight - 55;
     
-    roundRect(ctx, marcoMargin, marcoTop, marcoW, marcoH, 30);
-    ctx.fillStyle = COLORES.marcoColor;
-    ctx.fill();
-    ctx.strokeStyle = COLORES.orejaBorde; 
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-
-    // --- 4. PANTALLA (Capa Superior) ---
-    const pantallaMargin = 15;
-    const pantallaX = marcoMargin + pantallaMargin;
-    const pantallaY = marcoTop + pantallaMargin;
-    const pantallaW = marcoW - (pantallaMargin * 2);
-    const pantallaH = marcoH - (pantallaMargin * 2);
-
-    ctx.shadowColor = COLORES.pantallaSombra;
-    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 15;
     ctx.shadowOffsetY = 5;
-
-    roundRect(ctx, pantallaX, pantallaY, pantallaW, pantallaH, 20);
-    ctx.fillStyle = COLORES.pantallaFondo;
+    
+    roundRect(ctx, marcoExtX, marcoExtY, marcoExtW, marcoExtH, 30);
+    ctx.fillStyle = COLORES.marcoExterior;
     ctx.fill();
-
+    
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
 
+    // 4. Marco Interior (Pantalla con Glow)
+    const marcoIntMargin = 15;
+    const marcoIntX = marcoExtX + marcoIntMargin;
+    const marcoIntY = marcoExtY + marcoIntMargin;
+    const marcoIntW = marcoExtW - (marcoIntMargin * 2);
+    const marcoIntH = marcoExtH - (marcoIntMargin * 2);
 
-    // --- 5. CONTENIDO ---
+    ctx.shadowColor = COLORES.sombraGlow;
+    ctx.shadowBlur = 25;
+    ctx.shadowOffsetY = 0;
+
+    roundRect(ctx, marcoIntX, marcoIntY, marcoIntW, marcoIntH, 20);
+    ctx.fillStyle = COLORES.marcoInterior;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    // 5. Contenido (Avatar y Texto)
     const centerX = canvasWidth / 2;
-    const centerY = pantallaY + (pantallaH / 2); 
+    const centerY = marcoIntY + (marcoIntH / 2);
 
-    // AVATAR
-    const avatarRadio = 65;
-    const avatarY = centerY - 45; 
+    // Avatar
+    const avatarRadio = 70;
+    const avatarY = centerY - 50;
 
-    // Borde
+    ctx.beginPath();
+    ctx.arc(centerX, avatarY, avatarRadio + 5, 0, Math.PI * 2, true);
+    ctx.fillStyle = COLORES.bordeAvatar;
+    ctx.fill();
+
+    ctx.save();
     ctx.beginPath();
     ctx.arc(centerX, avatarY, avatarRadio, 0, Math.PI * 2, true);
     ctx.closePath();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = COLORES.bordeAvatar;
-    ctx.stroke();
-
-    // Imagen
-    ctx.save();
     ctx.clip();
     const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 256 });
     const avatar = await loadImage(avatarURL);
     ctx.drawImage(avatar, centerX - avatarRadio, avatarY - avatarRadio, avatarRadio * 2, avatarRadio * 2);
     ctx.restore();
 
-    // TEXTO
+    // Texto
     ctx.textAlign = 'center';
 
-    // 1. NOMBRE (Grande)
-    ctx.fillStyle = COLORES.textoBlanco;
-    ctx.font = 'bold 38px sans-serif'; 
+    // Nombre principal
+    ctx.fillStyle = COLORES.textoPrincipal;
+    // Usamos una fuente serif en negrita para parecerse a la imagen
+    ctx.font = 'bold 42px "Times New Roman", serif'; 
     let nombre = member.user.username.length > 15 ? member.user.username.substring(0, 15) + '...' : member.user.username;
     ctx.fillText(nombre, centerX, centerY + 55);
 
-    // 2. FRASE (Más pequeña: 22px)
-    ctx.fillStyle = COLORES.textoGris; 
-    ctx.font = '22px sans-serif';      // <-- REDUCIDO A 22PX
+    // Frase secundaria
+    ctx.fillStyle = COLORES.textoSecundario;
+    ctx.font = '24px sans-serif';
     ctx.fillText("just joined the server", centerX, centerY + 85);
 
-    // 3. CONTADOR
-    ctx.fillStyle = COLORES.orejaBorde; 
-    ctx.font = 'bold 20px sans-serif';
+    // Contador de miembros
+    ctx.font = 'bold 22px sans-serif';
     ctx.fillText(`Member #${member.guild.memberCount}`, centerX, centerY + 115);
 
     return new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'bienvenida-neko.png' });
