@@ -3,13 +3,13 @@ const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, P
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
 const express = require('express');
-
-// 👇 IMPORTAMOS TUS NUEVOS ESTILOS
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 const { crearTarjetaBienvenida } = require('./estilosNeko'); 
 
 // --- SERVIDOR WEB ---
 const app = express();
-app.get('/', (req, res) => res.send('¡El bot está vivo! 🤖'));
+app.get('/', (req, res) => res.send('El bot está funcionando🤖'));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🌐 Servidor web listo en el puerto ${port}`));
 
@@ -40,19 +40,32 @@ cargarExtractores();
 // Registrar los comandos
 // =======================
 client.on('ready', async () => {
-    console.log(`🎵 Bot de música listo como ${client.user.tag}!`);
+    console.log(`🎵 Bot listo como ${client.user.tag}!`);
+    
     const comandos = [
-        { name: 'borrar', description: 'Borra mensajes (Admins)', options: [{ name: 'cantidad', description: 'Nº mensajes', type: ApplicationCommandOptionType.Integer, required: true }] },
-        { name: 'help', description: 'Ver todos los comandos del bot' },
-        { name: 'avatar', description: 'Ver foto de perfil', options: [{ name: 'usuario', description: 'Usuario', type: ApplicationCommandOptionType.User, required: false }] },
-        { name: 'bola8', description: 'Pregunta mágica', options: [{ name: 'pregunta', description: 'Tu duda', type: ApplicationCommandOptionType.String, required: true }] },
+        // ... TUS COMANDOS DE SIEMPRE ...
+        { name: 'borrar', description: 'Borra mensajes', options: [{ name: 'cantidad', description: 'Nº mensajes', type: ApplicationCommandOptionType.Integer, required: true }] },
+        { name: 'avatar', description: 'Ver avatar', options: [{ name: 'usuario', description: 'Usuario', type: ApplicationCommandOptionType.User, required: false }] },
+        { name: 'bola8', description: 'Pregunta mágica', options: [{ name: 'pregunta', description: 'Duda', type: ApplicationCommandOptionType.String, required: true }] },
         { name: 'ping', description: 'Ver latencia' },
         { name: 'play', description: 'Poner música', options: [{ name: 'cancion', description: 'URL o nombre', type: ApplicationCommandOptionType.String, required: true }] },
         { name: 'skip', description: 'Saltar canción' },
-        { name: 'stop', description: 'Desconectar música' }
+        { name: 'stop', description: 'Desconectar música' },
+        { name: 'help', description: 'Ver ayuda' },
+        { 
+            name: 'setbienvenida', 
+            description: 'Configura dónde dar las bienvenidas', 
+            options: [{ name: 'canal', description: 'Canal para bienvenidas', type: ApplicationCommandOptionType.Channel, required: true }] 
+        },
+        { 
+            name: 'setdespedida', 
+            description: 'Configura dónde dar las despedidas', 
+            options: [{ name: 'canal', description: 'Canal para despedidas', type: ApplicationCommandOptionType.Channel, required: true }] 
+        }
     ];
+
     await client.application.commands.set(comandos);
-    console.log('💻 Comandos Slash (/) registrados!');
+    console.log('💻 Comandos registrados!');
 });
 
 // ===========================
@@ -117,6 +130,30 @@ client.on('interactionCreate', async (interaction) => {
         if (queue) queue.delete();
         return interaction.reply('🛑 Desconectado.');
     }
+
+    // GUARDAR CANAL DE BIENVENIDA
+    if (commandName === 'setbienvenida') {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) 
+            return interaction.reply({ content: '⛔ Solo administradores.', ephemeral: true });
+
+        const canal = interaction.options.getChannel('canal');
+        // Guardamos en la base de datos: "en el servidor X, el canal de bienvenida es Y"
+        await db.set(`wel_${interaction.guild.id}`, canal.id);
+        
+        return interaction.reply(`✅ Canal de bienvenidas establecido en ${canal}`);
+    }
+
+    // GUARDAR CANAL DE DESPEDIDA
+    if (commandName === 'setdespedida') {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) 
+            return interaction.reply({ content: '⛔ Solo administradores.', ephemeral: true });
+
+        const canal = interaction.options.getChannel('canal');
+        // Guardamos en la base de datos
+        await db.set(`bye_${interaction.guild.id}`, canal.id);
+        
+        return interaction.reply(`👋 Canal de despedidas establecido en ${canal}`);
+    }
 });
 
 // ================
@@ -136,13 +173,13 @@ client.on('messageCreate', async (message) => {
             .addFields(
                 { name: '🎵 Música', value: '`!play`, `!stop`, `!skip`', inline: true },
                 { name: '🎲 Diversión', value: '`!bola8`, `!avatar`', inline: true },
-                { name: '⚙️ Utilidad', value: '`!ping`, `!borrar`', inline: true }
+                { name: '⚙️ Utilidad', value: '`!ping`', inline: true }
             )
             .setFooter({ text: 'También funcionan con / (ej: /play)' });
 
         return message.reply({ embeds: [embed] });
     }
-    
+
     if (command === 'play' || command === 'p') {
         const canal = message.member.voice.channel;
         if (!canal) return message.reply('❌ Entra a voz.');
@@ -174,19 +211,23 @@ client.on('messageCreate', async (message) => {
 });
 
 // ==========================================
-// 4. SISTEMA DE BIENVENIDA Y DESPEDIDA
+// 4. SISTEMA DE BIENVENIDA Y DESPEDIDA (DINÁMICO)
 // ==========================================
-
-const ID_CANAL_BIENVENIDA = '1009204515481854002';
-const ID_CANAL_DESPEDIDA = '1009752137363894343'; 
 
 client.on('guildMemberAdd', async (member) => {
     try {
-        const channel = await member.guild.channels.fetch(ID_CANAL_BIENVENIDA);
+        // 1. Preguntamos a la base de datos: "¿Hay canal configurado para ESTE servidor?"
+        const canalId = await db.get(`wel_${member.guild.id}`);
+        
+        // Si no hay canal configurado, no hacemos nada (y no damos error)
+        if (!canalId) return;
+
+        const channel = await member.guild.channels.fetch(canalId);
         if (!channel) return;
 
         await channel.sendTyping();
         
+        // Creamos la imagen
         const tarjetaImagen = await crearTarjetaBienvenida(member); 
 
         await channel.send({ 
@@ -195,15 +236,23 @@ client.on('guildMemberAdd', async (member) => {
         });
 
     } catch (e) {
-        console.error('❌ Error bienvenida:', e);
+        console.error('❌ Error enviando bienvenida:', e);
     }
 });
 
 client.on('guildMemberRemove', async (member) => {
     try {
-        const channel = await member.guild.channels.fetch(ID_CANAL_DESPEDIDA);
+        // 1. Preguntamos a la base de datos por el canal de despedida
+        const canalId = await db.get(`bye_${member.guild.id}`);
+
+        if (!canalId) return; // Si no hay configuración, adiós
+
+        const channel = await member.guild.channels.fetch(canalId);
         if (channel) channel.send(`**${member.user.username}** no pudo aguantar más. 🐱`);
-    } catch (e) { console.error('❌ Error despedida.'); }
+
+    } catch (e) { 
+        console.error('❌ Error enviando despedida.'); 
+    }
 });
 
 client.login(process.env.DISCORD_TOKEN);
