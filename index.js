@@ -1,9 +1,9 @@
 require('dotenv').config();
-// 1. AÑADIDO: Importamos 'GatewayIntentBits.GuildMembers' en la lista de intents
-const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, PermissionsBitField } = require('discord.js');
+const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, PermissionsBitField, AttachmentBuilder } = require('discord.js');
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
 const express = require('express');
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
 // --- SERVIDOR WEB (KEEP ALIVE) ---
 const app = express();
@@ -18,7 +18,7 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildMembers // <--- ¡NUEVO! Necesario para ver quién entra/sale
+        GatewayIntentBits.GuildMembers // Para ver quién entra/sale
     ]
 });
 
@@ -319,30 +319,99 @@ client.on('messageCreate', async (message) => {
 
 });
 
+// =============================
+// CREAR LA IMAGEN DE BIENVENIDA
+// =============================
+async function crearTarjetaBienvenida(member) {
+    // 1. Crear el lienzo (canvas) de 700x250 píxeles
+    const canvas = createCanvas(700, 250);
+    const ctx = canvas.getContext('2d'); // 'ctx' es el pincel con el que dibujamos
+
+    // 2. Dibujar el fondo (Un degradado chulo de azul a morado)
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    gradient.addColorStop(0, '#00bfff'); // Color inicial (DeepSkyBlue)
+    gradient.addColorStop(1, '#8a2be2'); // Color final (BlueViolet)
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height); // Rellenar todo el fondo
+
+    // 3. Dibujar un borde blanco alrededor
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+    // 4. Escribir el texto
+    ctx.fillStyle = '#ffffff'; // Color del texto (blanco)
+    ctx.shadowColor = 'black'; // Sombra negra para que se lea mejor
+    ctx.shadowBlur = 10;
+    
+    // Título pequeño
+    ctx.font = 'bold 40px sans-serif'; 
+    ctx.fillText('¡Bienvenido/a,', 270, 100); // Coordenadas X=270, Y=100
+
+    // Nombre del usuario en grande
+    ctx.font = 'bold 60px sans-serif';
+    // Si el nombre es muy largo, lo cortamos para que no se salga
+    let nombreDisplay = member.user.username.length > 15 ? member.user.username.substring(0, 15) + '...' : member.user.username;
+    ctx.fillText(nombreDisplay, 270, 180); // Coordenadas X=270, Y=180
+
+    // --- ZONA PELIGROSA: Recortar la foto de perfil en círculo ---
+    ctx.shadowBlur = 0; // Quitamos la sombra para el círculo
+    ctx.beginPath();
+    // Dibujamos un círculo en X=125, Y=125, con radio 100
+    ctx.arc(125, 125, 100, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip(); // ¡MAGIA! Todo lo que dibujemos ahora solo se verá DENTRO de ese círculo
+
+    // Cargar la foto del usuario de Discord
+    // Pedimos la foto en formato 'png' y tamaño '256'
+    const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 256 });
+    const avatar = await loadImage(avatarURL); // Esperamos a que se descargue la imagen
+    
+    // Dibujamos la foto cuadrada sobre el agujero circular que hemos hecho
+    ctx.drawImage(avatar, 25, 25, 200, 200);
+
+    // 5. Convertir el lienzo en un archivo que Discord entienda
+    const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'tarjeta-bienvenida.png' });
+    return attachment;
+}
+
 // ==========================================
-// 4. SISTEMA DE BIENVENIDA Y DESPEDIDA
+// 4. SISTEMA DE BIENVENIDA (CON IMAGEN) Y DESPEDIDA
 // ==========================================
 
-//  AQUI PEGA LA ID DE TU CANAL 
-const ID_CANAL_BIENVENIDA = '1009204515481854002'; 
+const ID_CANAL_BIENVENIDA = '1009204515481854002';
 const ID_CANAL_DESPEDIDA = '1009752137363894343'; 
 
+// Evento: Alguien entra
 client.on('guildMemberAdd', async (member) => {
     try {
+        // 1. Buscamos el canal
         const channel = await member.guild.channels.fetch(ID_CANAL_BIENVENIDA);
-        if (channel) {
-            channel.send(`Bienvenido <@${member.id}>, suerte con salir cuerdo de aquí. 😃`);
-        }
+        if (!channel) return;
+
+        // 2. Le decimos al canal que estamos "escribiendo/dibujando" (queda pro)
+        await channel.sendTyping();
+
+        // 3. LLAMAMOS AL ARTISTA: Creamos la imagen (esto tarda 1-2 segundos)
+        const tarjetaImagen = await crearTarjetaBienvenida(member);
+
+        // 4. Enviamos el mensaje de texto ADJUNTANDO la imagen
+        await channel.send({ 
+            content: `¡Hey <@${member.id}>! Bienvenido al servidor. Suerte con salir cuerdo de aquí. 😃`, 
+            files: [tarjetaImagen] // Aquí va el "archivo adjunto"
+        });
+
     } catch (e) {
-        console.error('❌ Error Bienvenida: ID incorrecta o falta permiso "Ver Canal".');
+        console.error('❌ Error generando la bienvenida con imagen:', e);
     }
 });
 
+// Evento: Alguien se va (Este lo dejamos solo con texto, más simple)
 client.on('guildMemberRemove', async (member) => {
     try {
         const channel = await member.guild.channels.fetch(ID_CANAL_DESPEDIDA);
         if (channel) {
-            channel.send(`@${member.user.username} No pudo aguantar más 😃.`);
+            channel.send(`👋 **${member.user.username}** no pudo aguantar más y se ha ido. 😃.`);
         }
     } catch (e) {
         console.error('❌ Error Despedida.');
