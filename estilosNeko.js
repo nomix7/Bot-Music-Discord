@@ -17,7 +17,7 @@ const COLORES = {
     
     // --- COLORES PANTALLA (Capa superior) ---
     pantallaFondo: '#111214',    // Casi negro (pantalla)
-    pantallaSombra: '#000000',   // Sombra de profundidad
+    pantallaSombra: '#7289da',   // Sombra de profundidad
 
     // --- TEXTO Y DETALLES ---
     textoBlanco: '#ffffff',
@@ -190,7 +190,7 @@ async function crearTarjetaBienvenida(member) {
     // 2. FRASE (Más pequeña: 22px)
     ctx.fillStyle = COLORES.textoGris; 
     ctx.font = '22px sans-serif';      // <-- REDUCIDO A 22PX
-    ctx.fillText("just joined the server", centerX, centerY + 85);
+    ctx.fillText("se ha unido al servidor", centerX, centerY + 85);
 
     // 3. CONTADOR
     ctx.fillStyle = COLORES.orejaBorde; 
