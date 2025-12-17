@@ -1,41 +1,74 @@
 // ==========================================
-// 🎨 ESTILOS NEKO REDISEÑADO (estilosNeko.js)
+// 🎨 ESTILOS NEKO: REDISEÑO DE HUELLA (estilosNeko.js)
 // ==========================================
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
 
-// 1. NUEVA PALETA DE COLORES OSCURA Y AZUL
+// 1. PALETA DE COLORES (Oscura y Azul Neko)
 const COLORES = {
     fondoInicio: '#0a0a2a', // Azul muy oscuro casi negro
     fondoFin: '#1c1c3c',    // Un tono ligeramente más claro para el degradado
     texto: '#ffffff',       // Texto blanco
     borde: '#4169e1',       // Borde azul real (Royal Blue)
-    huellas: 'rgba(0, 191, 255, 0.15)' // Huellas azul cielo (DeepSkyBlue) semitransparentes
+    // Huellas azul cielo (DeepSkyBlue) semitransparentes
+    huellas: 'rgba(0, 191, 255, 0.15)' 
 };
 
-// Función auxiliar para dibujar una huella (NO CAMBIA)
+// --- NUEVA FUNCIÓN PARA DIBUJAR LA HUELLA CLÁSICA ---
+// Esta función ahora dibuja la forma exacta de la imagen que pasaste.
 function dibujarHuella(ctx, x, y, tamaño, angulo) {
     ctx.save();
+    // Nos movemos a la posición y rotamos
     ctx.translate(x, y);
     ctx.rotate(angulo);
+    
+    // Usamos el color azul transparente definido arriba
     ctx.fillStyle = COLORES.huellas;
+
+    // Factor de escala para ajustar el tamaño general
+    const s = tamaño * 0.8; 
+
+    // --- 1. Almohadilla principal (La parte grande de abajo) ---
     ctx.beginPath();
-    ctx.ellipse(0, 0, tamaño, tamaño * 0.8, 0, 0, Math.PI * 2);
+    // Dibujamos un óvalo achatado en la parte inferior
+    // Center (0, s*0.3), RadioX s*0.9, RadioY s*0.6
+    ctx.ellipse(0, s * 0.3, s * 0.9, s * 0.6, 0, 0, Math.PI * 2);
     ctx.fill();
-    const distanciaDedos = tamaño * 1.2;
-    const tamañoDedo = tamaño * 0.35;
-    const angulosDedos = [-0.6, -0.2, 0.2, 0.6];
-    angulosDedos.forEach(rad => {
-        ctx.beginPath();
-        const dx = Math.sin(rad) * distanciaDedos;
-        const dy = -Math.cos(rad) * distanciaDedos;
-        ctx.arc(dx, dy, tamañoDedo, 0, Math.PI * 2);
-        ctx.fill();
-    });
+
+    // --- 2. Los 4 deditos (Óvalos arriba) ---
+    // Definimos tamaños y posiciones relativas
+    const toeWidth = s * 0.28;  // Ancho del dedo
+    const toeHeight = s * 0.38; // Alto del dedo
+    const toeYHigh = -s * 0.5;  // Altura para los dedos centrales (más arriba)
+    const toeYLow = -s * 0.3;   // Altura para los dedos exteriores (más abajo)
+    const toeXInner = s * 0.35; // Distancia X para los dedos centrales
+    const toeXOuter = s * 0.85; // Distancia X para los dedos exteriores
+
+    // Dedo interior izquierdo (ligeramente inclinado a la izquierda)
+    ctx.beginPath();
+    ctx.ellipse(-toeXInner, toeYHigh, toeWidth, toeHeight, -0.1, 0, Math.PI * 2); 
+    ctx.fill();
+
+    // Dedo interior derecho (ligeramente inclinado a la derecha)
+    ctx.beginPath();
+    ctx.ellipse(toeXInner, toeYHigh, toeWidth, toeHeight, 0.1, 0, Math.PI * 2); 
+    ctx.fill();
+
+    // Dedo exterior izquierdo (más bajo y más inclinado)
+    ctx.beginPath();
+    ctx.ellipse(-toeXOuter, toeYLow, toeWidth, toeHeight, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dedo exterior derecho (más bajo y más inclinado)
+    ctx.beginPath();
+    ctx.ellipse(toeXOuter, toeYLow, toeWidth, toeHeight, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Restauramos el estado del pincel para no afectar a lo siguiente que se dibuje
     ctx.restore();
 }
 
-// --- FUNCIÓN PRINCIPAL REDISEÑADA ---
+// --- FUNCIÓN PRINCIPAL (Crea la tarjeta) ---
 async function crearTarjetaBienvenida(member) {
     const canvasWidth = 700;
     const canvasHeight = 250;
@@ -49,37 +82,34 @@ async function crearTarjetaBienvenida(member) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // Dibujamos más huellas (15) azules para que se noten más en el fondo oscuro
+    // Dibujamos 15 huellas con la NUEVA forma
     for (let i = 0; i < 15; i++) {
         const x = Math.random() * canvasWidth;
         const y = Math.random() * canvasHeight;
-        const tamaño = Math.random() * 12 + 8; 
+        // Tamaño aleatorio entre 10 y 25
+        const tamaño = Math.random() * 15 + 10; 
         const angulo = Math.random() * Math.PI * 2;
         dibujarHuella(ctx, x, y, tamaño, angulo);
     }
 
     // Borde azul
     ctx.strokeStyle = COLORES.borde;
-    ctx.lineWidth = 8; // Un poco más fino
+    ctx.lineWidth = 8;
     ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
 
-    // --- TEXTO (CENTRADOS Y MÁS PEQUEÑOS) ---
-    // IMPORTANTE: Dibujamos el texto ANTES de recortar el círculo del avatar.
+    // --- TEXTO (CENTRADOS) ---
     ctx.fillStyle = COLORES.texto;
     ctx.shadowColor = 'black';
     ctx.shadowBlur = 4;
-    ctx.textAlign = 'center'; // ¡Truco para centrar el texto horizontalmente!
+    ctx.textAlign = 'center'; 
 
-    // Título pequeño
-    ctx.font = 'bold 24px sans-serif'; // Tamaño reducido (antes era ~35-40)
-    // Lo colocamos en el centro horizontal (350) y abajo (Y=205)
+    // Título
+    ctx.font = 'bold 24px sans-serif';
     ctx.fillText('¡Un nuevo Neko ha llegado!', canvasWidth / 2, 205); 
 
     // Nombre del usuario
-    ctx.font = 'bold 32px sans-serif'; // Tamaño reducido (antes era ~55-60)
-    // Permitimos nombres un poco más largos al ser la letra más pequeña
+    ctx.font = 'bold 32px sans-serif';
     let nombreDisplay = member.user.username.length > 20 ? member.user.username.substring(0, 20) + '...' : member.user.username;
-    // Lo colocamos debajo del título (Y=235)
     ctx.fillText(nombreDisplay, canvasWidth / 2, 235);
 
 
@@ -87,33 +117,27 @@ async function crearTarjetaBienvenida(member) {
     ctx.shadowBlur = 0; 
     ctx.beginPath();
     
-    // Cálculos para centrar:
-    // Centro X = canvasWidth / 2 = 350
-    // Centro Y = Lo subimos un poco, por ejemplo a Y=90
-    // Radio = Reducimos un poco el círculo a 75px
+    // Configuración del círculo del avatar
     const avatarRadio = 75;
     const avatarCenterX = canvasWidth / 2;
     const avatarCenterY = 90;
 
-    // Dibujamos el círculo de recorte
+    // Recorte circular
     ctx.arc(avatarCenterX, avatarCenterY, avatarRadio, 0, Math.PI * 2, true);
     ctx.closePath();
-    ctx.clip(); // ¡RECORTE ACTIVADO!
+    ctx.clip(); 
 
     // Cargar y dibujar la imagen
     const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 256 });
     const avatar = await loadImage(avatarURL);
     
-    // Para dibujar la imagen cuadrada centrada sobre el círculo:
-    // X de inicio = CentroX - Radio
-    // Y de inicio = CentroY - Radio
-    // Ancho/Alto = Radio * 2
+    // Dibujar la imagen centrada en el recorte
     ctx.drawImage(
         avatar, 
-        avatarCenterX - avatarRadio, // X: 350 - 75 = 275
-        avatarCenterY - avatarRadio, // Y: 90 - 75 = 15
-        avatarRadio * 2,             // Ancho: 150
-        avatarRadio * 2              // Alto: 150
+        avatarCenterX - avatarRadio, 
+        avatarCenterY - avatarRadio, 
+        avatarRadio * 2,             
+        avatarRadio * 2              
     );
 
     return new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'bienvenida-neko.png' });
