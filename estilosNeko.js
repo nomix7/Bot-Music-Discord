@@ -1,35 +1,30 @@
 // ==========================================
-// 🎨 ESTILOS NEKO (estilosNeko.js)
+// 🎨 ESTILOS NEKO REDISEÑADO (estilosNeko.js)
 // ==========================================
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
 
-// Configuración de colores (Tu "CSS" de variables)
+// 1. NUEVA PALETA DE COLORES OSCURA Y AZUL
 const COLORES = {
-    fondoInicio: '#2b003e', // Morado oscuro
-    fondoFin: '#ff007f',    // Rosa neón
-    texto: '#ffffff',
-    borde: '#ffffff',
-    huellas: 'rgba(255, 255, 255, 0.1)' // Huellas blancas transparentes
+    fondoInicio: '#0a0a2a', // Azul muy oscuro casi negro
+    fondoFin: '#1c1c3c',    // Un tono ligeramente más claro para el degradado
+    texto: '#ffffff',       // Texto blanco
+    borde: '#4169e1',       // Borde azul real (Royal Blue)
+    huellas: 'rgba(0, 191, 255, 0.15)' // Huellas azul cielo (DeepSkyBlue) semitransparentes
 };
 
-// Función auxiliar para dibujar una huella de gato 🐾
+// Función auxiliar para dibujar una huella (NO CAMBIA)
 function dibujarHuella(ctx, x, y, tamaño, angulo) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angulo);
     ctx.fillStyle = COLORES.huellas;
-
-    // Almohadilla principal
     ctx.beginPath();
     ctx.ellipse(0, 0, tamaño, tamaño * 0.8, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    // Deditos
     const distanciaDedos = tamaño * 1.2;
     const tamañoDedo = tamaño * 0.35;
-    const angulosDedos = [-0.6, -0.2, 0.2, 0.6]; // Distribución de los dedos
-
+    const angulosDedos = [-0.6, -0.2, 0.2, 0.6];
     angulosDedos.forEach(rad => {
         ctx.beginPath();
         const dx = Math.sin(rad) * distanciaDedos;
@@ -37,63 +32,91 @@ function dibujarHuella(ctx, x, y, tamaño, angulo) {
         ctx.arc(dx, dy, tamañoDedo, 0, Math.PI * 2);
         ctx.fill();
     });
-
     ctx.restore();
 }
 
-// Función principal que exportamos
+// --- FUNCIÓN PRINCIPAL REDISEÑADA ---
 async function crearTarjetaBienvenida(member) {
-    const canvas = createCanvas(700, 250);
+    const canvasWidth = 700;
+    const canvasHeight = 250;
+    const canvas = createCanvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
 
-    // 1. FONDO DEGRADADO NEKO
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    // --- FONDO Y DECORACIÓN ---
+    const gradient = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
     gradient.addColorStop(0, COLORES.fondoInicio);
     gradient.addColorStop(1, COLORES.fondoFin);
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // 2. DECORACIÓN: HUELLAS DE GATO DE FONDO 🐾
-    // Dibujamos 10 huellas aleatorias
-    for (let i = 0; i < 10; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const tamaño = Math.random() * 15 + 10; // Tamaño entre 10 y 25
+    // Dibujamos más huellas (15) azules para que se noten más en el fondo oscuro
+    for (let i = 0; i < 15; i++) {
+        const x = Math.random() * canvasWidth;
+        const y = Math.random() * canvasHeight;
+        const tamaño = Math.random() * 12 + 8; 
         const angulo = Math.random() * Math.PI * 2;
         dibujarHuella(ctx, x, y, tamaño, angulo);
     }
 
-    // 3. BORDE
+    // Borde azul
     ctx.strokeStyle = COLORES.borde;
-    ctx.lineWidth = 10;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 8; // Un poco más fino
+    ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
 
-    // 4. TEXTO
+    // --- TEXTO (CENTRADOS Y MÁS PEQUEÑOS) ---
+    // IMPORTANTE: Dibujamos el texto ANTES de recortar el círculo del avatar.
     ctx.fillStyle = COLORES.texto;
     ctx.shadowColor = 'black';
-    ctx.shadowBlur = 10;
-    
-    ctx.font = 'bold 35px sans-serif'; 
-    ctx.fillText('¡Un nuevo Neko llegó!', 270, 90); 
+    ctx.shadowBlur = 4;
+    ctx.textAlign = 'center'; // ¡Truco para centrar el texto horizontalmente!
 
-    ctx.font = 'bold 55px sans-serif';
-    let nombreDisplay = member.user.username.length > 12 ? member.user.username.substring(0, 12) + '...' : member.user.username;
-    ctx.fillText(nombreDisplay, 270, 170);
+    // Título pequeño
+    ctx.font = 'bold 24px sans-serif'; // Tamaño reducido (antes era ~35-40)
+    // Lo colocamos en el centro horizontal (350) y abajo (Y=205)
+    ctx.fillText('¡Un nuevo Neko ha llegado!', canvasWidth / 2, 205); 
 
-    // 5. AVATAR EN CÍRCULO
+    // Nombre del usuario
+    ctx.font = 'bold 32px sans-serif'; // Tamaño reducido (antes era ~55-60)
+    // Permitimos nombres un poco más largos al ser la letra más pequeña
+    let nombreDisplay = member.user.username.length > 20 ? member.user.username.substring(0, 20) + '...' : member.user.username;
+    // Lo colocamos debajo del título (Y=235)
+    ctx.fillText(nombreDisplay, canvasWidth / 2, 235);
+
+
+    // --- AVATAR (CENTRADO ARRIBA) ---
     ctx.shadowBlur = 0; 
     ctx.beginPath();
-    ctx.arc(125, 125, 100, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.clip(); 
+    
+    // Cálculos para centrar:
+    // Centro X = canvasWidth / 2 = 350
+    // Centro Y = Lo subimos un poco, por ejemplo a Y=90
+    // Radio = Reducimos un poco el círculo a 75px
+    const avatarRadio = 75;
+    const avatarCenterX = canvasWidth / 2;
+    const avatarCenterY = 90;
 
+    // Dibujamos el círculo de recorte
+    ctx.arc(avatarCenterX, avatarCenterY, avatarRadio, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip(); // ¡RECORTE ACTIVADO!
+
+    // Cargar y dibujar la imagen
     const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 256 });
     const avatar = await loadImage(avatarURL);
-    ctx.drawImage(avatar, 25, 25, 200, 200);
+    
+    // Para dibujar la imagen cuadrada centrada sobre el círculo:
+    // X de inicio = CentroX - Radio
+    // Y de inicio = CentroY - Radio
+    // Ancho/Alto = Radio * 2
+    ctx.drawImage(
+        avatar, 
+        avatarCenterX - avatarRadio, // X: 350 - 75 = 275
+        avatarCenterY - avatarRadio, // Y: 90 - 75 = 15
+        avatarRadio * 2,             // Ancho: 150
+        avatarRadio * 2              // Alto: 150
+    );
 
-    // Devolvemos el archivo listo
     return new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'bienvenida-neko.png' });
 }
 
-// Exportamos la función para poder usarla en index.js
 module.exports = { crearTarjetaBienvenida };
