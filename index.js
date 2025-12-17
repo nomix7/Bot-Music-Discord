@@ -43,6 +43,7 @@ client.on('ready', async () => {
     console.log(`🎵 Bot de música listo como ${client.user.tag}!`);
     const comandos = [
         { name: 'borrar', description: 'Borra mensajes (Admins)', options: [{ name: 'cantidad', description: 'Nº mensajes', type: ApplicationCommandOptionType.Integer, required: true }] },
+        { name: 'help', description: 'Ver todos los comandos del bot' },
         { name: 'avatar', description: 'Ver foto de perfil', options: [{ name: 'usuario', description: 'Usuario', type: ApplicationCommandOptionType.User, required: false }] },
         { name: 'bola8', description: 'Pregunta mágica', options: [{ name: 'pregunta', description: 'Tu duda', type: ApplicationCommandOptionType.String, required: true }] },
         { name: 'ping', description: 'Ver latencia' },
@@ -60,6 +61,21 @@ client.on('ready', async () => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const { commandName } = interaction;
+
+    if (commandName === 'help') {
+        const embed = new EmbedBuilder()
+            .setTitle('🐱 Ayuda de NekoBot')
+            .setDescription('Aquí tienes la lista de comandos disponibles:')
+            .setColor('#7289da')
+            .addFields(
+                { name: '🎵 Música', value: '`/play`, `/stop`, `/skip`', inline: true },
+                { name: '🎲 Diversión', value: '`/bola8`, `/avatar`', inline: true },
+                { name: '⚙️ Utilidad', value: '`/ping`, `/borrar`', inline: true }
+            )
+            .setFooter({ text: 'También funcionan con ! (ej: !play)' });
+            
+        return interaction.reply({ embeds: [embed] });
+    }
 
     if (commandName === 'borrar') {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return interaction.reply({ content: '⛔ Sin permisos.', ephemeral: true });
@@ -112,6 +128,21 @@ client.on('messageCreate', async (message) => {
     const command = args.shift().toLowerCase();
     const query = args.join(" ");
 
+    if (command === 'help' || command === 'ayuda') {
+        const embed = new EmbedBuilder()
+            .setTitle('🐱 Ayuda de NekoBot')
+            .setDescription('Aquí tienes la lista de comandos disponibles:')
+            .setColor('#7289da')
+            .addFields(
+                { name: '🎵 Música', value: '`!play`, `!stop`, `!skip`', inline: true },
+                { name: '🎲 Diversión', value: '`!bola8`, `!avatar`', inline: true },
+                { name: '⚙️ Utilidad', value: '`!ping`, `!borrar`', inline: true }
+            )
+            .setFooter({ text: 'También funcionan con / (ej: /play)' });
+
+        return message.reply({ embeds: [embed] });
+    }
+    
     if (command === 'play' || command === 'p') {
         const canal = message.member.voice.channel;
         if (!canal) return message.reply('❌ Entra a voz.');
