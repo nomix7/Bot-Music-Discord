@@ -3,9 +3,11 @@ const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, P
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
 const express = require('express');
-const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
-// --- SERVIDOR WEB (KEEP ALIVE) ---
+// 👇 IMPORTAMOS TUS NUEVOS ESTILOS
+const { crearTarjetaBienvenida } = require('./estilosNeko'); 
+
+// --- SERVIDOR WEB ---
 const app = express();
 app.get('/', (req, res) => res.send('¡El bot está vivo! 🤖'));
 const port = process.env.PORT || 3000;
@@ -18,19 +20,19 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildMembers // Para ver quién entra/sale
+        GatewayIntentBits.GuildMembers 
     ]
 });
 
 const player = new Player(client);
 
-// --- DEBUG ---
+// --- DEBUG PLAYER ---
 player.events.on('playerError', (queue, error) => console.log(`⚠️ Fallo en el reproductor: ${error.message}`));
 player.events.on('error', (queue, error) => console.log(`⚠️ Fallo en la cola: ${error.message}`));
 
 async function cargarExtractores() {
     await player.extractors.loadMulti(DefaultExtractors);
-    console.log('✅ Extractores de audio cargados correctamente');
+    console.log('✅ Extractores cargados');
 }
 cargarExtractores();
 
@@ -39,69 +41,14 @@ cargarExtractores();
 // =======================
 client.on('ready', async () => {
     console.log(`🎵 Bot de música listo como ${client.user.tag}!`);
-
-    // Definimos la lista de comandos Slash
     const comandos = [
-        {
-            name: 'borrar',
-            description: 'Borra una cantidad de mensajes (Admins)',
-            options: [
-                {
-                    name: 'cantidad',
-                    description: 'Número de mensajes a borrar (max 100)',
-                    type: ApplicationCommandOptionType.Integer, // Tipo Número entero
-                    required: true
-                }
-            ]
-        },
-        {
-            name: 'avatar',
-            description: 'Muestra la foto de perfil de un usuario',
-            options: [
-                {
-                    name: 'usuario',
-                    description: 'De quién quieres ver la foto',
-                    type: ApplicationCommandOptionType.User, // Tipo Usuario
-                    required: false // Si no pone nada, muestra la suya
-                }
-            ]
-        },
-        {
-            name: 'bola8',
-            description: 'Responde a tus preguntas existenciales',
-            options: [
-                {
-                    name: 'pregunta',
-                    description: '¿Qué quieres saber?',
-                    type: ApplicationCommandOptionType.String,
-                    required: true
-                }
-            ]
-        },
-        {
-            name: 'ping',
-            description: 'Comprueba la latencia del bot'
-        },
-        {
-            name: 'play',
-            description: 'Reproduce una canción',
-            options: [
-                {
-                    name: 'cancion',
-                    description: 'URL o nombre de la canción',
-                    type: ApplicationCommandOptionType.String, // Esto pide texto
-                    required: true
-                }
-            ]
-        },
-        {
-            name: 'skip',
-            description: 'Salta la canción actual'
-        },
-        {
-            name: 'stop',
-            description: 'Detiene la música y desconecta al bot'
-        }
+        { name: 'borrar', description: 'Borra mensajes (Admins)', options: [{ name: 'cantidad', description: 'Nº mensajes', type: ApplicationCommandOptionType.Integer, required: true }] },
+        { name: 'avatar', description: 'Ver foto de perfil', options: [{ name: 'usuario', description: 'Usuario', type: ApplicationCommandOptionType.User, required: false }] },
+        { name: 'bola8', description: 'Pregunta mágica', options: [{ name: 'pregunta', description: 'Tu duda', type: ApplicationCommandOptionType.String, required: true }] },
+        { name: 'ping', description: 'Ver latencia' },
+        { name: 'play', description: 'Poner música', options: [{ name: 'cancion', description: 'URL o nombre', type: ApplicationCommandOptionType.String, required: true }] },
+        { name: 'skip', description: 'Saltar canción' },
+        { name: 'stop', description: 'Desconectar música' }
     ];
     await client.application.commands.set(comandos);
     console.log('💻 Comandos Slash (/) registrados!');
@@ -111,116 +58,48 @@ client.on('ready', async () => {
 // Escuchar Slash Commands (/)
 // ===========================
 client.on('interactionCreate', async (interaction) => {
-    // Si no es un comando de chat, ignoramos
     if (!interaction.isChatInputCommand()) return;
-
     const { commandName } = interaction;
 
-    // --- COMANDO /BORRAR ---
     if (commandName === 'borrar') {
-    // 1. SEGURIDAD: Comprobamos si el usuario tiene permisos para manejar mensajes
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-        return interaction.reply({ content: '⛔ ¡No tienes permisos para hacer esto!', ephemeral: true });
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return interaction.reply({ content: '⛔ Sin permisos.', ephemeral: true });
+        const cantidad = interaction.options.getInteger('cantidad');
+        if (cantidad > 100 || cantidad < 1) return interaction.reply({ content: 'Máximo 100 mensajes.', ephemeral: true });
+        try { await interaction.channel.bulkDelete(cantidad); return interaction.reply({ content: `🧹 ${cantidad} mensajes borrados.`, ephemeral: true }); } 
+        catch (e) { return interaction.reply({ content: '❌ Error borrando mensajes.', ephemeral: true }); }
     }
-
-    const cantidad = interaction.options.getInteger('cantidad');
-
-    // Discord no deja borrar más de 100 de golpe ni mensajes de hace más de 14 días
-    if (cantidad > 100 || cantidad < 1) {
-        return interaction.reply({ content: 'Solo puedo borrar entre 1 y 100 mensajes.', ephemeral: true });
-    }
-
-    // Borramos
-    try {
-        await interaction.channel.bulkDelete(cantidad);
-        return interaction.reply({ content: `**${cantidad}** mensajes eliminados.`, ephemeral: true });
-    } catch (error) {
-        return interaction.reply({ content: '❌ No puedo borrar mensajes antiguos (más de 14 días) o no tengo permisos.', ephemeral: true });
-    }
-}
-    // --- COMANDO /AVATAR ---
     if (commandName === 'avatar') {
-        // Si ha mencionado a alguien, usamos ese. Si no, usamos al que escribió el comando.
         const usuario = interaction.options.getUser('usuario') || interaction.user;
-
-        const embed = new EmbedBuilder()
-            .setTitle(`Avatar de ${usuario.username}`)
-            .setImage(usuario.displayAvatarURL({ size: 1024, dynamic: true })) // dynamic: true permite gifs
-            .setColor('Random')
-            .setFooter({ text: 'Solicitado por ' + interaction.user.username });
-
+        const embed = new EmbedBuilder().setTitle(`Avatar de ${usuario.username}`).setImage(usuario.displayAvatarURL({ size: 1024, dynamic: true })).setColor('Random');
         return interaction.reply({ embeds: [embed] });
     }
-    // --- COMANDO /BOLA8 ---
     if (commandName === 'bola8') {
-        const pregunta = interaction.options.getString('pregunta');
-
-        // Array de respuestas posibles
-        const respuestas = [
-            "Sí, definitivamente. ✅",
-            "No lo creo. ❌",
-            "Es muy probable. 🌟",
-            "Ni en tus sueños. 🤡",
-            "Pregunta mañana. 😴",
-            "Preguntale a un adulto responsable. 🙈"
-        ];
-
-        // Magia matemática para elegir una al azar
-        const respuestaRandom = respuestas[Math.floor(Math.random() * respuestas.length)];
-
-        // Creamos un Embed (tarjeta bonita)
-        const embed = new EmbedBuilder()
-            .setTitle('🎱 La Bola Mágica dice...')
-            .setColor('Purple') // Puedes poner 'Red', 'Blue', etc.
-            .addFields(
-                { name: 'Tu pregunta', value: pregunta },
-                { name: 'Mi respuesta', value: respuestaRandom }
-            );
-
+        const preg = interaction.options.getString('pregunta');
+        const resps = ["Sí ✅", "No ❌", "Quizás 🕵️", "Imposible 🤡", "Pregunta a un adulto 🙈"];
+        const azar = resps[Math.floor(Math.random() * resps.length)];
+        const embed = new EmbedBuilder().setTitle('🎱 Bola 8').setColor('Purple').addFields({ name: 'Pregunta', value: preg }, { name: 'Respuesta', value: azar });
         return interaction.reply({ embeds: [embed] });
     }
-    // --- COMANDO /PING ---
-    if (commandName === 'ping') {
-        return interaction.reply('¡Pong! 🏓');
-    }
-
-    // --- COMANDO /PLAY ---
+    if (commandName === 'ping') return interaction.reply('¡Pong! 🏓');
+    
     if (commandName === 'play') {
-        const canalVoz = interaction.member.voice.channel;
-        if (!canalVoz) return interaction.reply({ content: '❌ ¡Entra primero a un canal de voz!', ephemeral: true });
-
-        // Como buscar música tarda un poco, usamos "deferReply" para que el bot diga "Pensando..."
+        const canal = interaction.member.voice.channel;
+        if (!canal) return interaction.reply({ content: '❌ Entra a voz.', ephemeral: true });
         await interaction.deferReply();
-
-        const query = interaction.options.getString('cancion');
-
         try {
-            const { track } = await player.play(canalVoz, query, {
-                nodeOptions: { metadata: interaction, leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false }
-            });
-
-            // Usamos editReply porque ya usamos deferReply antes
-            return interaction.editReply(`🎶 ¡Añadido a la cola: **${track.title}**!`);
-        } catch (error) {
-            console.error(error);
-            return interaction.editReply('❌ No pude encontrar o reproducir esa canción.');
-        }
+            const { track } = await player.play(canal, interaction.options.getString('cancion'), { nodeOptions: { metadata: interaction } });
+            return interaction.editReply(`🎶 Añadido: **${track.title}**`);
+        } catch (e) { return interaction.editReply('❌ No encontrada.'); }
     }
-
-    // --- COMANDO /SKIP ---
     if (commandName === 'skip') {
         const queue = player.nodes.get(interaction.guild);
-        if (!queue || !queue.isPlaying()) return interaction.reply({ content: '❌ No hay música sonando.', ephemeral: true });
-
-        queue.node.skip();
-        return interaction.reply('⏩ ¡Canción saltada!');
+        if (queue && queue.isPlaying()) { queue.node.skip(); return interaction.reply('⏩ Saltada.'); }
+        return interaction.reply({ content: '❌ Nada sonando.', ephemeral: true });
     }
-
-    // --- COMANDO /STOP ---
     if (commandName === 'stop') {
         const queue = player.nodes.get(interaction.guild);
         if (queue) queue.delete();
-        return interaction.reply('🛑 ¡Música detenida y desconectado!');
+        return interaction.reply('🛑 Desconectado.');
     }
 });
 
@@ -228,194 +107,72 @@ client.on('interactionCreate', async (interaction) => {
 // Comandos con "!"
 // ================
 client.on('messageCreate', async (message) => {
-    // Ignorar bots y mensajes que no empiecen por "!"
     if (message.author.bot || !message.content.startsWith('!')) return;
-
     const args = message.content.slice(1).trim().split(/ +/);
     const command = args.shift().toLowerCase();
     const query = args.join(" ");
 
-    // --- COMANDO: !PLAY ---
     if (command === 'play' || command === 'p') {
-        const canalVoz = message.member.voice.channel;
-        if (!canalVoz) return message.reply('❌ ¡Entra primero al chat de voz!');
-        if (!query) return message.reply('❌ Dime qué canción busco.');
+        const canal = message.member.voice.channel;
+        if (!canal) return message.reply('❌ Entra a voz.');
+        if (!query) return message.reply('❌ Dime qué buscar.');
         try {
-            const { track } = await player.play(canalVoz, query, {
-                nodeOptions: { metadata: message, leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false }
-            });
-            return message.channel.send(`🎶 ¡Añadido: **${track.title}**!`);
-        } catch (e) { return message.reply('❌ Error buscando la canción.'); }
+            const { track } = await player.play(canal, query, { nodeOptions: { metadata: message } });
+            return message.channel.send(`🎶 Añadido: **${track.title}**`);
+        } catch (e) { return message.reply('❌ Error.'); }
     }
-    
-    // --- COMANDO: !STOP ---
     if (command === 'stop' || command === 'e') {
-         const queue = player.nodes.get(message.guild);
-         if (queue) queue.delete();
-         message.reply('🛑 Adiós.');
+        const queue = player.nodes.get(message.guild);
+        if (queue) queue.delete();
+        message.reply('🛑 Adiós.');
     }
-
-    // --- COMANDO: !SKIP ---
     if (command === 'skip' || command === 's') {
         const queue = player.nodes.get(message.guild);
-        if (!queue || !queue.isPlaying()) return message.reply('❌ No hay música sonando.');
-        
-        queue.node.skip();
-        return message.reply('⏩ ¡Siguiente canción!');
+        if (queue && queue.isPlaying()) { queue.node.skip(); message.reply('⏩ Saltada.'); }
+        else message.reply('❌ Nada sonando.');
     }
-
-    // --- COMANDO: !BOLA8 ---
     if (command === 'bola8') {
-        if (!query) return message.reply('🔮 Pregúntame algo.');
-
-        const respuestas = [
-            "Sí, claro. ✅", "No lo creo. ❌", "Quizás... 🕵️", 
-            "Definitivamente sí. 🌟", "Pregunta mañana. 😴", 
-            "Preguntale a un adulto responsable. 🙈"
-        ];
-        // Elegir respuesta al azar
-        const azar = respuestas[Math.floor(Math.random() * respuestas.length)];
-
-        // Crear la tarjeta bonita (Embed)
-        const embed = new EmbedBuilder()
-            .setTitle('🎱 La Bola Mágica')
-            .setColor('Purple')
-            .addFields(
-                { name: 'Pregunta', value: query },
-                { name: 'Respuesta', value: azar }
-            );
-
-        return message.channel.send({ embeds: [embed] });
+        if (!query) return message.reply('🔮 Pregunta algo.');
+        const resps = ["Sí", "No", "Quizás", "Pregunta a un adulto 🙈"];
+        message.reply(`🎱 **${resps[Math.floor(Math.random() * resps.length)]}**`);
     }
-
-    // --- COMANDO: !AVATAR ---
     if (command === 'avatar') {
-        // Coge el usuario mencionado O el autor del mensaje
-        const usuario = message.mentions.users.first() || message.author;
-
-        const embed = new EmbedBuilder()
-            .setTitle(`Avatar de ${usuario.username}`)
-            .setImage(usuario.displayAvatarURL({ size: 1024, dynamic: true }))
-            .setColor('Blue');
-
-        return message.channel.send({ embeds: [embed] });
+        const user = message.mentions.users.first() || message.author;
+        message.reply(user.displayAvatarURL({ size: 1024, dynamic: true }));
     }
-
-    // --- COMANDO DE DIAGNÓSTICO ---
-    if (command === 'testbienvenida') {
-        try {
-            // Intentamos buscar el canal con la ID que has puesto arriba
-            const channel = await client.channels.fetch(ID_CANAL_BIENVENIDA);
-            
-            if (channel) {
-                channel.send('✅ **DIAGNÓSTICO:** La ID es correcta y tengo permisos para escribir.');
-                message.reply('Test enviado al canal de bienvenida. ¿Lo ves?');
-            }
-        } catch (error) {
-            message.reply(`❌ **ERROR:** No encuentro el canal. \nCausa: La ID ${ID_CANAL_BIENVENIDA} está mal O no tengo permiso "Ver Canal" en ese chat.`);
-            console.error(error);
-        }
-    }
-
 });
 
-// =============================
-// CREAR LA IMAGEN DE BIENVENIDA
-// =============================
-async function crearTarjetaBienvenida(member) {
-    // 1. Crear el lienzo (canvas) de 700x250 píxeles
-    const canvas = createCanvas(700, 250);
-    const ctx = canvas.getContext('2d'); // 'ctx' es el pincel con el que dibujamos
-
-    // 2. Dibujar el fondo (Un degradado chulo de azul a morado)
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradient.addColorStop(0, '#00bfff'); // Color inicial (DeepSkyBlue)
-    gradient.addColorStop(1, '#8a2be2'); // Color final (BlueViolet)
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height); // Rellenar todo el fondo
-
-    // 3. Dibujar un borde blanco alrededor
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 10;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-    // 4. Escribir el texto
-    ctx.fillStyle = '#ffffff'; // Color del texto (blanco)
-    ctx.shadowColor = 'black'; // Sombra negra para que se lea mejor
-    ctx.shadowBlur = 10;
-    
-    // Título pequeño
-    ctx.font = 'bold 40px sans-serif'; 
-    ctx.fillText('¡Bienvenido/a,', 270, 100); // Coordenadas X=270, Y=100
-
-    // Nombre del usuario en grande
-    ctx.font = 'bold 60px sans-serif';
-    // Si el nombre es muy largo, lo cortamos para que no se salga
-    let nombreDisplay = member.user.username.length > 15 ? member.user.username.substring(0, 15) + '...' : member.user.username;
-    ctx.fillText(nombreDisplay, 270, 180); // Coordenadas X=270, Y=180
-
-    // --- ZONA PELIGROSA: Recortar la foto de perfil en círculo ---
-    ctx.shadowBlur = 0; // Quitamos la sombra para el círculo
-    ctx.beginPath();
-    // Dibujamos un círculo en X=125, Y=125, con radio 100
-    ctx.arc(125, 125, 100, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.clip(); // ¡MAGIA! Todo lo que dibujemos ahora solo se verá DENTRO de ese círculo
-
-    // Cargar la foto del usuario de Discord
-    // Pedimos la foto en formato 'png' y tamaño '256'
-    const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 256 });
-    const avatar = await loadImage(avatarURL); // Esperamos a que se descargue la imagen
-    
-    // Dibujamos la foto cuadrada sobre el agujero circular que hemos hecho
-    ctx.drawImage(avatar, 25, 25, 200, 200);
-
-    // 5. Convertir el lienzo en un archivo que Discord entienda
-    const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'tarjeta-bienvenida.png' });
-    return attachment;
-}
-
 // ==========================================
-// 4. SISTEMA DE BIENVENIDA (CON IMAGEN) Y DESPEDIDA
+// 4. SISTEMA DE BIENVENIDA Y DESPEDIDA
 // ==========================================
 
 const ID_CANAL_BIENVENIDA = '1009204515481854002';
 const ID_CANAL_DESPEDIDA = '1009752137363894343'; 
 
-// Evento: Alguien entra
 client.on('guildMemberAdd', async (member) => {
     try {
-        // 1. Buscamos el canal
         const channel = await member.guild.channels.fetch(ID_CANAL_BIENVENIDA);
         if (!channel) return;
 
-        // 2. Le decimos al canal que estamos "escribiendo/dibujando" (queda pro)
         await channel.sendTyping();
+        
+        const tarjetaImagen = await crearTarjetaBienvenida(member); 
 
-        // 3. LLAMAMOS AL ARTISTA: Creamos la imagen (esto tarda 1-2 segundos)
-        const tarjetaImagen = await crearTarjetaBienvenida(member);
-
-        // 4. Enviamos el mensaje de texto ADJUNTANDO la imagen
         await channel.send({ 
-            content: `¡Hey <@${member.id}>! Bienvenido al servidor. Suerte con salir cuerdo de aquí. 😃`, 
-            files: [tarjetaImagen] // Aquí va el "archivo adjunto"
+            content: `Bienvenido <@${member.id}>! Suerte con salir cuerdo de aquí. 😺`, 
+            files: [tarjetaImagen] 
         });
 
     } catch (e) {
-        console.error('❌ Error generando la bienvenida con imagen:', e);
+        console.error('❌ Error bienvenida:', e);
     }
 });
 
-// Evento: Alguien se va (Este lo dejamos solo con texto, más simple)
 client.on('guildMemberRemove', async (member) => {
     try {
         const channel = await member.guild.channels.fetch(ID_CANAL_DESPEDIDA);
-        if (channel) {
-            channel.send(`👋 **${member.user.username}** no pudo aguantar más y se ha ido. 😃.`);
-        }
-    } catch (e) {
-        console.error('❌ Error Despedida.');
-    }
+        if (channel) channel.send(`**${member.user.username}** no pudo aguantar más. 🐱`);
+    } catch (e) { console.error('❌ Error despedida.'); }
 });
 
 client.login(process.env.DISCORD_TOKEN);
