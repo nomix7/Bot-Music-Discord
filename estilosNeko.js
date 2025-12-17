@@ -105,7 +105,7 @@ async function crearTarjetaBienvenida(member) {
 
     // Título
     ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('¡Un nuevo Neko ha llegado!', canvasWidth / 2, 205); 
+    ctx.fillText('¡Bienvenido/a!', canvasWidth / 2, 205); 
 
     // Nombre del usuario
     ctx.font = 'bold 32px sans-serif';
