@@ -82,7 +82,7 @@ function dibujarOreja(ctx, x, y, esDerecha) {
     // === 2. OREJA INTERIOR (La parte oscura) ===
     ctx.beginPath();
     // Empezamos un poco desplazados adentro
-    const innerX = x + (32 * dir); // <--- CAMBIADO DE 25 A 32 PARA CENTRAR
+    const innerX = x + (20 * dir); // <--- CAMBIADO DE 25 A 20 PARA CENTRAR
     const innerY = y - 10;
     
     ctx.moveTo(innerX, innerY);
@@ -136,7 +136,7 @@ async function crearTarjetaBienvenida(member) {
 
 
     // --- 4. PANTALLA (Capa Superior) ---
-    const pantallaMargin = 30; // <--- CAMBIADO DE 15 A 30 (HACE EL CUADRO MÁS PEQUEÑO)
+    const pantallaMargin = 20; // <--- CAMBIADO DE 15 A 20 (HACE EL CUADRO MÁS PEQUEÑO)
     const pantallaX = marcoMargin + pantallaMargin;
     const pantallaY = marcoTop + pantallaMargin;
     const pantallaW = marcoW - (pantallaMargin * 2);
