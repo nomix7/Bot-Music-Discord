@@ -117,8 +117,8 @@ async function crearTarjetaBienvenida(member) {
     // --- 2. DIBUJAR OREJAS ---
     // Ajustamos la posición X e Y para que encajen perfectas
     // Y=100 para que asomen bien por encima del marco
-    dibujarOreja(ctx, 135, 102, false);         // Izquierda
-    dibujarOreja(ctx, canvasWidth - 135, 102, true); // Derecha
+    dibujarOreja(ctx, 150, 103, false);         // Izquierda
+    dibujarOreja(ctx, canvasWidth - 150, 103, true); // Derecha
 
 
     // --- 3. MARCO (Capa Intermedia) ---
