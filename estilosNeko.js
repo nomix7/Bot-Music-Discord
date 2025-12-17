@@ -13,11 +13,11 @@ const COLORES = {
     orejaInterior: '#1e1f22',    // Gris oscuro (profundidad interior)
 
     // --- COLORES MARCO (Capa intermedia) ---
-    marcoColor: '#383a40',       // Gris carcasa
+    marcoColor: '#7289da',       // Gris carcasa
     
     // --- COLORES PANTALLA (Capa superior) ---
     pantallaFondo: '#111214',    // Casi negro (pantalla)
-    pantallaSombra: '#7289da',   // Sombra de profundidad
+    pantallaSombra: '#000000ff',   // Sombra de profundidad
 
     // --- TEXTO Y DETALLES ---
     textoBlanco: '#ffffff',
