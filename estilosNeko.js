@@ -1,6 +1,6 @@
-// ==========================================
-// 🎨 ESTILOS NEKO: OREJAS REDONDAS Y SUAVES 😺
-// ==========================================
+// ==============
+//  ESTILOS NEKO
+// ==============
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
 
@@ -8,12 +8,12 @@ const COLORES = {
     fondoCanvas: '#2b2d31',      // Gris Discord estándar
     
     // --- COLORES OREJAS ---
-    orejaBorde: '#4e5058',       // Gris medio (trazo)
+    orejaBorde: '#7289da',       // Gris medio (trazo)
     orejaFondo: '#2b2d31',       // Mismo que fondo (huecas)
     orejaInterior: '#1e1f22',    // Gris oscuro (profundidad interior)
 
     // --- COLORES MARCO (Capa intermedia) ---
-    marcoColor: '#7289da',       // Gris carcasa
+    marcoColor: '#383a40',       // Gris carcasa
     
     // --- COLORES PANTALLA (Capa superior) ---
     pantallaFondo: '#111214',    // Casi negro (pantalla)
@@ -25,7 +25,7 @@ const COLORES = {
     bordeAvatar: '#ffffff'
 };
 
-// Función para rectángulos redondeados (La misma de antes)
+// Función para rectángulos redondeados
 function roundRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -66,7 +66,7 @@ function dibujarOreja(ctx, x, y, esDerecha) {
     ctx.bezierCurveTo(
         x + (80 * dir), y - 105, // Control 1: Mantiene la redondez arriba
         x + (90 * dir), y - 50,  // Control 2: Baja abriéndose
-        x + (100 * dir), y + 20  // Final: Base exterior (un poco más abajo)
+        x + (100 * dir), y + 20  // Final: Base exterior
     );
 
     // Cerramos la base
@@ -82,7 +82,7 @@ function dibujarOreja(ctx, x, y, esDerecha) {
     // === 2. OREJA INTERIOR (La parte oscura) ===
     ctx.beginPath();
     // Empezamos un poco desplazados adentro
-    const innerX = x + (20 * dir); // <--- CAMBIADO DE 25 A 20 PARA CENTRAR
+    const innerX = x + (20 * dir);
     const innerY = y - 10;
     
     ctx.moveTo(innerX, innerY);
@@ -115,8 +115,6 @@ async function crearTarjetaBienvenida(member) {
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // --- 2. DIBUJAR OREJAS ---
-    // Ajustamos la posición X e Y para que encajen perfectas
-    // Y=100 para que asomen bien por encima del marco
     dibujarOreja(ctx, 150, 103, false);         // Izquierda
     dibujarOreja(ctx, canvasWidth - 150, 103, true); // Derecha
 
@@ -136,7 +134,7 @@ async function crearTarjetaBienvenida(member) {
 
 
     // --- 4. PANTALLA (Capa Superior) ---
-    const pantallaMargin = 20; // <--- CAMBIADO DE 15 A 20 (HACE EL CUADRO MÁS PEQUEÑO)
+    const pantallaMargin = 20; // <--- HACE EL CUADRO MÁS PEQUEÑO
     const pantallaX = marcoMargin + pantallaMargin;
     const pantallaY = marcoTop + pantallaMargin;
     const pantallaW = marcoW - (pantallaMargin * 2);
@@ -189,7 +187,7 @@ async function crearTarjetaBienvenida(member) {
 
     // 2. FRASE (Más pequeña: 22px)
     ctx.fillStyle = COLORES.textoGris; 
-    ctx.font = '22px sans-serif';      // <-- REDUCIDO A 22PX
+    ctx.font = '22px sans-serif';
     ctx.fillText("se ha unido al servidor", centerX, centerY + 85);
 
     // 3. CONTADOR
