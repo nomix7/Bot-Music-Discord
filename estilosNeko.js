@@ -1,28 +1,29 @@
-// ================
-// 🎨 ESTILOS NEKO
-// ================
-const { createCanvas, loadImage, registerFont } = require('@napi-rs/canvas');
+// ==========================================
+// 🎨 ESTILOS NEKO: RÉPLICA EXACTA FINAL V2 (estilosNeko.js)
+// ==========================================
+// Basado en la referencia visual exacta de image_17.png
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
 
-// 1. PALETA DE COLORES EXACTA (Extraída de la imagen de referencia)
+// 1. PALETA DE COLORES EXACTA
 const COLORES = {
-    // Fondo general del canvas (oscuro para mezclarse con Discord)
-    fondoCanvas: '#23272a',       
-    // Color de las orejas (gris oscuro sutil)
-    orejasRelleno: '#2c2f33',     
-    // Fondo de la tarjeta interior (gris carbón)
-    fondoInterior: '#292b2f',     
-    // Sombra para el efecto "glow" de la tarjeta interior
-    sombraInterior: '#000000',    
+    // Fondo base oscuro (se funde con Discord)
+    fondoCanvas: '#2f3136',       
+    // Orejas sutiles en el fondo
+    orejasRelleno: '#202225',     
+    // Fondo de la tarjeta principal (gris muy oscuro)
+    fondoInterior: '#18191c',     
+    // Sombra difusa y profunda para el efecto "glow" oscuro
+    sombraGlow: '#050505',    
     // Texto principal (Blanco puro)
     textoPrincipal: '#ffffff',   
-    // Texto secundario (Gris claro de Discord)
+    // Texto secundario (Gris claro estándar)
     textoSecundario: '#b9bbbe',  
-    // Borde fino del avatar
+    // Borde fino y nítido del avatar
     avatarBorde: '#ffffff'        
 };
 
-// --- FUNCIÓN PARA DIBUJAR RECTÁNGULOS REDONDEADOS ---
+// --- FUNCIÓN AUXILIAR PARA RECTÁNGULOS REDONDEADOS ---
 function roundRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -48,90 +49,98 @@ async function crearTarjetaBienvenida(member) {
     ctx.fillStyle = COLORES.fondoCanvas;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // --- CAPA 2: OREJAS (Sutiles en el fondo) ---
+    // --- CAPA 2: OREJAS DE GATO (Fondo sutil) ---
     ctx.fillStyle = COLORES.orejasRelleno;
-    // Sin bordes, solo relleno sólido sutil
-
+    
     // Oreja Izquierda
     ctx.beginPath();
-    ctx.moveTo(70, 110);  // Base más ancha
-    ctx.lineTo(130, 20);  // Punta redondeada
-    ctx.lineTo(190, 110); // Base
+    // Coordenadas ajustadas para la forma de la referencia
+    ctx.moveTo(80, 110);  
+    ctx.lineTo(140, 25);  
+    ctx.lineTo(200, 110); 
     ctx.closePath();
     ctx.fill();
 
-    // Oreja Derecha
+    // Oreja Derecha (Espejo)
     ctx.beginPath();
-    ctx.moveTo(canvasWidth - 70, 110);
-    ctx.lineTo(canvasWidth - 130, 20);
-    ctx.lineTo(canvasWidth - 190, 110);
+    ctx.moveTo(canvasWidth - 80, 110);
+    ctx.lineTo(canvasWidth - 140, 25);
+    ctx.lineTo(canvasWidth - 200, 110);
     ctx.closePath();
     ctx.fill();
 
-    // --- CAPA 3: TARJETA INTERIOR CON "GLOW" ---
-    const cardX = 40;
-    const cardY = 60; // Un poco más abajo para dejar ver más las orejas
-    const cardWidth = canvasWidth - 80;
-    const cardHeight = canvasHeight - 100;
-    const cornerRadius = 25; // Bordes más redondeados
+    // --- CAPA 3: TARJETA INTERIOR CON "GLOW" OSCURO ---
+    const cardMarginX = 50;
+    const cardMarginY = 60;
+    const cardX = cardMarginX;
+    const cardY = cardMarginY;
+    const cardWidth = canvasWidth - (cardMarginX * 2);
+    const cardHeight = canvasHeight - (cardMarginY * 1.5);
+    const cornerRadius = 20; // Bordes redondeados suaves
 
-    // Configuración de la sombra suave (Glow)
-    ctx.shadowColor = COLORES.sombraInterior;
-    ctx.shadowBlur = 25; // Difuminado intenso
+    // Configuración de la sombra (El "Glow" oscuro)
+    ctx.shadowColor = COLORES.sombraGlow;
+    ctx.shadowBlur = 30; // Difuminado alto y suave
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 5;
+    ctx.shadowOffsetY = 8; // Ligero desplazamiento hacia abajo para profundidad
 
-    // Dibujamos el rectángulo interior
+    // Dibujar la tarjeta
     roundRect(ctx, cardX, cardY, cardWidth, cardHeight, cornerRadius);
     ctx.fillStyle = COLORES.fondoInterior;
     ctx.fill();
     
-    // IMPORTANTE: Quitamos la sombra para lo siguiente
+    // IMPORTANTE: Resetear sombra para que no afecte al contenido
     ctx.shadowBlur = 0; 
     ctx.shadowOffsetY = 0;
 
     // --- CAPA 4: CONTENIDO (Avatar y Texto) ---
     const cardCenterX = canvasWidth / 2;
+    // Calculamos el centro vertical de la tarjeta interior
     const cardCenterY = cardY + (cardHeight / 2);
 
-    // AVATAR CENTRADO
+    // -- AVATAR --
     const avatarRadio = 65;
-    // Posición Y ajustada para que quede centrado en la mitad superior
-    const avatarY = cardCenterY - 35; 
+    // Posición Y del avatar (ligeramente por encima del centro)
+    const avatarY = cardCenterY - 40; 
 
+    // 1. Dibujar el borde blanco fino
     ctx.beginPath();
     ctx.arc(cardCenterX, avatarY, avatarRadio, 0, Math.PI * 2, true);
     ctx.closePath();
-    
-    // Borde blanco fino (Grosor 3 en vez de 5)
     ctx.strokeStyle = COLORES.avatarBorde;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3; // Grosor fino exacto
     ctx.stroke();
     
-    // Recorte y dibujado de imagen
-    ctx.save();
-    ctx.clip();
+    // 2. Recortar y dibujar la imagen dentro
+    ctx.save(); // Guardar estado
+    ctx.clip(); // Crear máscara de recorte circular
+    
     const avatarURL = member.user.displayAvatarURL({ extension: 'png', size: 256 });
     const avatar = await loadImage(avatarURL);
+    // Dibujar imagen centrada en el círculo
     ctx.drawImage(avatar, cardCenterX - avatarRadio, avatarY - avatarRadio, avatarRadio * 2, avatarRadio * 2);
-    ctx.restore();
+    
+    ctx.restore(); // Restaurar estado (quitar recorte)
 
-    // TEXTOS
+    // -- TEXTOS --
     ctx.textAlign = 'center';
     
-    // Texto Principal: "usuario just joined the server"
+    // Texto Principal: Nombre + just joined...
     ctx.fillStyle = COLORES.textoPrincipal;
-    // Fuente sans-serif negrita estándar del sistema
-    ctx.font = 'bold 34px sans-serif'; 
+    // Fuente negrita simple, tamaño ajustado
+    ctx.font = 'bold 32px sans-serif'; 
+    // Recortar nombre si es muy largo
     let nombre = member.user.username.length > 18 ? member.user.username.substring(0, 18) + '...' : member.user.username;
-    ctx.fillText(`${nombre} just joined the server`, cardCenterX, cardCenterY + 65);
+    ctx.fillText(`${nombre} just joined the server`, cardCenterX, cardCenterY + 60);
 
-    // Texto Secundario: "Member #129"
+    // Texto Secundario: Member #...
     ctx.fillStyle = COLORES.textoSecundario;
-    ctx.font = '26px sans-serif';
+    // Fuente normal, tamaño menor
+    ctx.font = '24px sans-serif';
     const memberCount = member.guild.memberCount;
-    ctx.fillText(`Member #${memberCount}`, cardCenterX, cardCenterY + 105);
+    ctx.fillText(`Member #${memberCount}`, cardCenterX, cardCenterY + 100);
 
+    // Generar el archivo final
     return new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'bienvenida-neko.png' });
 }
 
