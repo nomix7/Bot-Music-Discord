@@ -1,5 +1,5 @@
 // ==========================================
-// 🎨 ESTILOS NEKO: VERSIÓN "CONSOLA NEKO" (Triple Capa)
+// 🎨 ESTILOS NEKO: VERSIÓN "OREJAS FUERA & FULL HEIGHT"
 // ==========================================
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { AttachmentBuilder } = require('discord.js');
@@ -8,16 +8,16 @@ const COLORES = {
     fondoCanvas: '#2b2d31',      // Gris Discord estándar
     
     // --- COLORES OREJAS ---
-    orejaBorde: '#4e5058',       // Gris medio (el trazo)
-    orejaFondo: '#2b2d31',       // El mismo que el fondo (para que parezca hueca)
-    orejaInterior: '#1e1f22',    // Gris muy oscuro (la "profundidad" interior de la oreja)
+    orejaBorde: '#4e5058',       // Gris medio (trazo)
+    orejaFondo: '#2b2d31',       // Mismo que fondo (huecas)
+    orejaInterior: '#1e1f22',    // Gris oscuro (profundidad)
 
     // --- COLORES MARCO (Capa intermedia) ---
-    marcoColor: '#383a40',       // Un gris que destaca sobre el fondo pero no brilla
+    marcoColor: '#383a40',       // Gris carcasa
     
     // --- COLORES PANTALLA (Capa superior) ---
-    pantallaFondo: '#111214',    // Casi negro (donde va el texto)
-    pantallaSombra: '#000000',   // Sombra para separar pantalla de marco
+    pantallaFondo: '#111214',    // Casi negro (pantalla)
+    pantallaSombra: '#000000',   // Sombra de profundidad
 
     // --- TEXTO Y DETALLES ---
     textoBlanco: '#ffffff',
@@ -25,7 +25,6 @@ const COLORES = {
     bordeAvatar: '#ffffff'
 };
 
-// Función para rectángulos redondeados
 function roundRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -40,39 +39,42 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
-// Función para dibujar una oreja compleja (Exterior + Interior)
+// Función ajustada: Orejas mirando hacia AFUERA
 function dibujarOreja(ctx, x, y, esDerecha) {
-    const factor = esDerecha ? -1 : 1; // Invierte si es la derecha
+    // Si es derecha (true), invertimos el dibujo horizontalmente
+    const dir = esDerecha ? 1 : -1; 
     
-    // 1. OREJA EXTERIOR (El contorno grande)
+    // 1. OREJA EXTERIOR
     ctx.beginPath();
-    // Empezamos abajo (base de la oreja)
+    // Empezamos en la base (pegado al marco)
     ctx.moveTo(x, y); 
-    // Curva hacia arriba (el lado exterior abombado)
-    ctx.quadraticCurveTo(x + (20 * factor), y - 60, x + (60 * factor), y - 100); 
-    // Curva hacia abajo (el lado interior)
-    ctx.quadraticCurveTo(x + (80 * factor), y - 40, x + (100 * factor), y);
     
-    // Dibujamos el borde y rellenamos
+    // Curva hacia AFUERA y ARRIBA
+    // Control point (x + 60*dir) empuja hacia afuera
+    ctx.quadraticCurveTo(x + (60 * dir), y - 80, x + (50 * dir), y - 110); 
+    
+    // Curva de retorno hacia adentro
+    ctx.quadraticCurveTo(x + (20 * dir), y - 50, x + (90 * dir), y);
+    
     ctx.fillStyle = COLORES.orejaFondo;
     ctx.fill();
     ctx.lineWidth = 6;
     ctx.strokeStyle = COLORES.orejaBorde;
     ctx.stroke();
 
-    // 2. OREJA INTERIOR (La profundidad oscura)
+    // 2. OREJA INTERIOR (Profundidad)
     ctx.beginPath();
-    // Hacemos una forma similar pero más pequeña y desplazada dentro
-    const innerX = x + (25 * factor);
+    // Un poco más adentro
+    const innerX = x + (20 * dir);
     const innerY = y - 10;
-    
+
     ctx.moveTo(innerX, innerY);
-    ctx.quadraticCurveTo(innerX + (10 * factor), innerY - 40, innerX + (35 * factor), innerY - 70);
-    ctx.quadraticCurveTo(innerX + (50 * factor), innerY - 30, innerX + (60 * factor), innerY);
-    
+    // Seguimos la misma forma pero más pequeña
+    ctx.quadraticCurveTo(innerX + (40 * dir), innerY - 60, innerX + (35 * dir), innerY - 80);
+    ctx.quadraticCurveTo(innerX + (15 * dir), innerY - 40, innerX + (50 * dir), innerY);
+
     ctx.fillStyle = COLORES.orejaInterior;
     ctx.fill();
-    // Sin borde para la parte de dentro, solo relleno oscuro
 }
 
 async function crearTarjetaBienvenida(member) {
@@ -86,39 +88,34 @@ async function crearTarjetaBienvenida(member) {
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // --- 2. DIBUJAR OREJAS (Capa trasera) ---
-    // Las dibujamos antes que el marco para que queden "detrás"
-    
-    // Oreja Izquierda (Posicionada sobre la izquierda del marco)
-    dibujarOreja(ctx, 100, 130, false);
-    
-    // Oreja Derecha (Posicionada sobre la derecha del marco)
-    dibujarOreja(ctx, canvasWidth - 100, 130, true);
+    // Ajustamos coordenadas Y porque ahora el marco está más arriba
+    // x=130 para separarlas un poco más
+    dibujarOreja(ctx, 130, 90, false); // Izquierda
+    dibujarOreja(ctx, canvasWidth - 130, 90, true); // Derecha
 
 
-    // --- 3. EL MARCO (La capa del medio / Primer cuadrado) ---
-    const marcoX = 50;
-    const marcoY = 80;
-    const marcoW = 700;
-    const marcoH = 250;
+    // --- 3. EL MARCO (Aprovechando más espacio arriba) ---
+    const marcoMargin = 40; // Margen lateral
+    const marcoTop = 50;    // ¡SUBIDO! Antes era 80, ahora 50 para aprovechar hueco
+    const marcoW = canvasWidth - (marcoMargin * 2);
+    // Calculamos altura para llegar casi hasta abajo (dejando 20px de margen inferior)
+    const marcoH = canvasHeight - marcoTop - 20; 
     
-    roundRect(ctx, marcoX, marcoY, marcoW, marcoH, 30); // Bordes muy redondos
+    roundRect(ctx, marcoMargin, marcoTop, marcoW, marcoH, 30);
     ctx.fillStyle = COLORES.marcoColor;
     ctx.fill();
-    // Le ponemos un borde sutil al marco
     ctx.strokeStyle = COLORES.orejaBorde; 
     ctx.lineWidth = 4;
     ctx.stroke();
 
 
-    // --- 4. LA PANTALLA (La capa superior / Cuadrado oscuro) ---
-    // Esta va dentro del marco, dejando un margen (el efecto bisel)
-    const margen = 15; // Grosor del marco visible
-    const pantallaX = marcoX + margen;
-    const pantallaY = marcoY + margen;
-    const pantallaW = marcoW - (margen * 2);
-    const pantallaH = marcoH - (margen * 2);
+    // --- 4. LA PANTALLA (Capa oscura central) ---
+    const pantallaMargin = 15;
+    const pantallaX = marcoMargin + pantallaMargin;
+    const pantallaY = marcoTop + pantallaMargin;
+    const pantallaW = marcoW - (pantallaMargin * 2);
+    const pantallaH = marcoH - (pantallaMargin * 2);
 
-    // Sombra para que parezca que la pantalla está "hundida" o separada
     ctx.shadowColor = COLORES.pantallaSombra;
     ctx.shadowBlur = 20;
     ctx.shadowOffsetY = 5;
@@ -127,18 +124,18 @@ async function crearTarjetaBienvenida(member) {
     ctx.fillStyle = COLORES.pantallaFondo;
     ctx.fill();
 
-    // Resetear sombras para el texto y avatar
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
 
 
-    // --- 5. CONTENIDO (Avatar y Texto) ---
+    // --- 5. CONTENIDO ---
     const centerX = canvasWidth / 2;
-    const centerY = pantallaY + (pantallaH / 2); // Centro de la pantalla negra
+    // Centro visual de la pantalla negra
+    const centerY = pantallaY + (pantallaH / 2); 
 
-    // AVATAR
+    // AVATAR (Subido un poco para dejar sitio al texto)
     const avatarRadio = 65;
-    const avatarY = centerY - 40; 
+    const avatarY = centerY - 45; 
 
     // Borde Avatar
     ctx.beginPath();
@@ -159,16 +156,22 @@ async function crearTarjetaBienvenida(member) {
     // TEXTO
     ctx.textAlign = 'center';
 
-    // Título (Nombre)
+    // 1. NOMBRE DEL USUARIO (Grande)
     ctx.fillStyle = COLORES.textoBlanco;
-    ctx.font = 'bold 36px sans-serif'; // Letra grande y gruesa
+    ctx.font = 'bold 38px sans-serif'; 
     let nombre = member.user.username.length > 15 ? member.user.username.substring(0, 15) + '...' : member.user.username;
-    ctx.fillText(`${nombre} just joined the server`, centerX, centerY + 65);
+    // Lo dibujamos debajo del avatar
+    ctx.fillText(nombre, centerX, centerY + 55);
 
-    // Subtítulo (Member count)
-    ctx.fillStyle = COLORES.textoGris;
-    ctx.font = '24px sans-serif';
-    ctx.fillText(`Member #${member.guild.memberCount}`, centerX, centerY + 105);
+    // 2. FRASE DE BIENVENIDA (Más pequeña, como pediste)
+    ctx.fillStyle = COLORES.textoGris; // Un poco más gris para dar jerarquía
+    ctx.font = '24px sans-serif';      // Reducido de 36 a 24
+    ctx.fillText("just joined the server", centerX, centerY + 85);
+
+    // 3. CONTADOR DE MIEMBROS
+    ctx.fillStyle = COLORES.orejaBorde; // Gris oscuro sutil
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(`Member #${member.guild.memberCount}`, centerX, centerY + 115);
 
     return new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'bienvenida-neko.png' });
 }
