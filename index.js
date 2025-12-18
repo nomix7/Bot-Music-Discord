@@ -1,5 +1,15 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder, PermissionsBitField, AttachmentBuilder } = require('discord.js');
+const { 
+    Client, 
+    GatewayIntentBits, 
+    ApplicationCommandOptionType, 
+    EmbedBuilder, 
+    PermissionsBitField, 
+    AttachmentBuilder,
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle 
+} = require('discord.js');
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
 const express = require('express');
@@ -106,7 +116,7 @@ client.on('interactionCreate', async (interaction) => {
         const preg = interaction.options.getString('pregunta');
         const resps = ["Sí ✅", "No ❌", "Quizás 🕵️", "Imposible 🤡", "Pregunta a un adulto 🙈"];
         const azar = resps[Math.floor(Math.random() * resps.length)];
-        const embed = new EmbedBuilder().setTitle('🎱 Bola 8').setColor('Purple').addFields({ name: 'Pregunta', value: preg }, { name: 'Respuesta', value: azar });
+        const embed = new EmbedBuilder().setTitle('🎱 Bola 8').setColor('#7289da').addFields({ name: 'Pregunta', value: preg }, { name: 'Respuesta', value: azar });
         return interaction.reply({ embeds: [embed] });
     }
     if (commandName === 'ping') return interaction.reply('¡Pong! 🏓');
@@ -116,9 +126,39 @@ client.on('interactionCreate', async (interaction) => {
         if (!canal) return interaction.reply({ content: '❌ Entra a voz.', ephemeral: true });
         await interaction.deferReply();
         try {
-            const { track } = await player.play(canal, interaction.options.getString('cancion'), { nodeOptions: { metadata: interaction } });
-            return interaction.editReply(`🎶 Añadido: **${track.title}**`);
-        } catch (e) { return interaction.editReply('❌ No encontrada.'); }
+            // Reproducimos la canción
+            const { track } = await player.play(canal, interaction.options.getString('cancion'), { 
+                nodeOptions: { metadata: interaction } 
+            });
+
+            // --- CREACIÓN DE BOTONES ---
+            const row1 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('prev').setEmoji('⏮️').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('pause').setEmoji('⏯️').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('stop').setEmoji('⏹️').setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId('skip').setEmoji('⏭️').setStyle(ButtonStyle.Secondary)
+            );
+
+            const row2 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('voldown').setEmoji('🔉').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('volup').setEmoji('🔊').setStyle(ButtonStyle.Secondary)
+            );
+
+            // --- CREACIÓN DEL EMBED (DISEÑO BONITO) ---
+            const embed = new EmbedBuilder()
+                .setTitle(`🎶 Reproduciendo ahora`)
+                .setDescription(`**[${track.title}](${track.url})**\n\n👤 **Autor:** ${track.author}\n⏳ **Duración:** ${track.duration}`)
+                .setThumbnail(track.thumbnail)
+                .setColor('#7289da')
+                .setFooter({ text: `Pedido por ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() });
+
+            // Enviamos el mensaje con el embed y los botones
+            return interaction.editReply({ embeds: [embed], components: [row1, row2] });
+
+        } catch (e) { 
+            console.error(e);
+            return interaction.editReply('❌ No encontré la canción o hubo un error.'); 
+        }
     }
     if (commandName === 'skip') {
         const queue = player.nodes.get(interaction.guild);
@@ -252,6 +292,66 @@ client.on('guildMemberRemove', async (member) => {
 
     } catch (e) { 
         console.error('❌ Error enviando despedida.'); 
+    }
+});
+// ==========================================
+// 5. MANEJADOR DE BOTONES DE MÚSICA
+// ==========================================
+client.on('interactionCreate', async (interaction) => {
+    // Si no es un botón, ignoramos
+    if (!interaction.isButton()) return;
+
+    // Obtenemos la cola de música del servidor
+    const queue = player.nodes.get(interaction.guild);
+    if (!queue || !queue.isPlaying()) {
+        return interaction.reply({ content: '❌ No hay música sonando ahora mismo.', ephemeral: true });
+    }
+
+    // Identificamos qué botón se pulsó
+    const action = interaction.customId;
+
+    try {
+        await interaction.deferUpdate(); // Evita que el botón diga "Error de interacción"
+
+        switch (action) {
+            case 'pause':
+                // Alternar pausa/reproducir
+                queue.node.setPaused(!queue.node.isPaused());
+                break;
+            
+            case 'stop':
+                queue.delete();
+                break;
+
+            case 'skip':
+                queue.node.skip();
+                break;
+
+            case 'prev':
+                // Nota: Solo funciona si el historial está habilitado y hay canciones antes
+                if (queue.history.previousTrack) {
+                    await queue.history.previous();
+                } else {
+                    interaction.followUp({ content: '❌ No hay canción anterior.', ephemeral: true });
+                }
+                break;
+
+            case 'volup':
+                // Subir volumen 10% (max 100)
+                let volUp = queue.node.volume + 10;
+                if (volUp > 100) volUp = 100;
+                queue.node.setVolume(volUp);
+                break;
+
+            case 'voldown':
+                // Bajar volumen 10% (min 0)
+                let volDown = queue.node.volume - 10;
+                if (volDown < 0) volDown = 0;
+                queue.node.setVolume(volDown);
+                break;
+        }
+    } catch (e) {
+        console.error("Error en botones:", e);
     }
 });
 
