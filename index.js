@@ -115,8 +115,18 @@ client.on('interactionCreate', async (interaction) => {
         const canal = interaction.member.voice.channel;
         if (!canal) return interaction.reply({ content: '❌ Entra a voz.', ephemeral: true });
         await interaction.deferReply();
+        
         try {
-            const { track } = await player.play(canal, interaction.options.getString('cancion'), { nodeOptions: { metadata: interaction } });
+            let busqueda = interaction.options.getString('cancion');
+            // Si NO es un enlace (no empieza por http), le añadimos "official audio"
+            if (!busqueda.startsWith('http')) {
+                busqueda = `${busqueda} official audio`;
+            }
+
+            const { track } = await player.play(canal, busqueda, { 
+                nodeOptions: { metadata: interaction } 
+            });
+
             return interaction.editReply(`🎶 Añadido: **${track.title}**`);
         } catch (e) { return interaction.editReply('❌ No encontrada.'); }
     }
@@ -184,8 +194,18 @@ client.on('messageCreate', async (message) => {
         const canal = message.member.voice.channel;
         if (!canal) return message.reply('❌ Entra a voz.');
         if (!query) return message.reply('❌ Dime qué buscar.');
+        
         try {
-            const { track } = await player.play(canal, query, { nodeOptions: { metadata: message } });
+            let busqueda = query;
+            // Si NO es un enlace, le añadimos "official audio"
+            if (!busqueda.startsWith('http')) {
+                busqueda = `${busqueda} official audio`;
+            }
+
+            const { track } = await player.play(canal, busqueda, { 
+                nodeOptions: { metadata: message } 
+            });
+
             return message.channel.send(`🎶 Añadido: **${track.title}**`);
         } catch (e) { return message.reply('❌ Error.'); }
     }
